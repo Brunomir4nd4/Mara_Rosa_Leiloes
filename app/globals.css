@@ -1,0 +1,79 @@
+/* --y é o mesmo amarelo do fundo do logo (#FEC200), para o painel e a imagem se fundirem sem emenda */
+:root{--y:#FEC200;--y-hi:#FFD23F;--k:#111111;--w:#ffffff;--mut:#b9b9b9;--err:#ff6b5e;
+ --ease:cubic-bezier(.2,.8,.2,1);--morph:.55s var(--ease)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--k);color:var(--w);font-family:var(--font-body),system-ui,sans-serif;
+ padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* ---------- Layout ---------- */
+.page{position:relative;min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+
+/* Painel do logo: três camadas com o mesmo recorte diagonal
+   (faixa amarela > vão escuro > painel), deslocadas para formar a lista lateral */
+.hero{position:relative;z-index:2;min-height:100vh;min-height:100dvh;animation:slide .9s var(--ease) both}
+.left,.gap,.stripe{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,86% 100%,0 100%);
+ transition:clip-path var(--morph),transform var(--morph)}
+.stripe{background:var(--y);transform:translateX(26px)}
+.gap{background:var(--k);transform:translateX(13px)}
+.left{display:flex;align-items:center;justify-content:center;padding:6vh 16% 6vh 6%;background:var(--y);
+ transition:clip-path var(--morph),padding var(--morph)}
+
+/* O logo nunca é cortado: tamanho fluido e bordas da marca d'água esmaecidas */
+.logo{display:block;height:auto;width:min(100%,72vh,560px);aspect-ratio:886/861;
+ -webkit-mask-image:radial-gradient(closest-side,#000 84%,transparent 100%);
+ mask-image:radial-gradient(closest-side,#000 84%,transparent 100%);
+ transition:width var(--morph);animation:pop 1s .15s var(--ease) both}
+
+/* Formulário */
+.right{grid-column:2;display:flex;align-items:center;justify-content:center;padding:48px 40px 48px 0;margin-left:-8%;
+ background:var(--k) repeating-linear-gradient(115deg,transparent 0 38px,rgba(254,194,0,.045) 38px 40px);
+ transition:padding var(--morph)}
+form{width:100%;max-width:400px;padding-left:14%;animation:rise .7s .35s var(--ease) both;transition:padding var(--morph)}
+h1{font:800 clamp(38px,4.4vw,60px)/.95 var(--font-display),sans-serif;margin:0 0 10px;transition:font-size var(--morph)}
+.sub{color:var(--mut);margin:0 0 32px;font-size:17px}
+label{display:block;font:700 20px var(--font-display),sans-serif;letter-spacing:.04em;margin-bottom:8px}
+.field{display:flex;border:2px solid var(--y);background:#1b1b1b;transition:box-shadow .2s}
+.field:focus-within{box-shadow:0 0 0 4px rgba(254,194,0,.25)}
+input{flex:1;min-width:0;background:transparent;border:0;color:var(--w);font:500 clamp(22px,2vw,26px) var(--font-body),sans-serif;letter-spacing:.06em;padding:15px 16px;outline:none}
+input::placeholder{color:#666}
+.err{min-height:22px;color:var(--err);font-size:15px;margin:8px 0 18px}
+button{width:100%;border:0;background:var(--y);color:var(--k);font:800 24px var(--font-display),sans-serif;letter-spacing:.06em;padding:15px;cursor:pointer;
+ clip-path:polygon(0 0,100% 0,100% 70%,92% 100%,0 100%);transition:transform .15s,background .15s}
+button:hover:not(:disabled){background:var(--y-hi)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.7;cursor:wait}
+button:focus-visible{outline:3px solid var(--w);outline-offset:3px}
+.ok{margin-top:18px;padding:14px;border-left:4px solid var(--y);background:#1b1b1b}
+
+@keyframes slide{from{transform:translateX(-40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rise{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+
+/* Tablet deitado: painel um pouco mais estreito */
+@media (max-width:1024px) and (min-width:761px) and (orientation:landscape){
+ .page{grid-template-columns:.9fr 1.1fr}
+ .left{padding:6vh 18% 6vh 5%}
+ form{padding-left:16%}
+}
+
+/* Mobile e tablet em pé: logo inteiro no topo, diagonal passa para a base do painel */
+@media (max-width:760px),(max-width:1024px) and (orientation:portrait){
+ .page{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+ .hero{min-height:0;animation-name:drop}
+ .left,.gap,.stripe{clip-path:polygon(0 0,100% 0,100% 86%,0 100%)}
+ .left{position:relative;padding:24px 24px 52px}
+ .stripe{transform:translateY(16px)}
+ .gap{transform:translateY(8px)}
+ .logo{width:min(68vw,36vh,320px)}
+ .right{grid-column:1;margin:0;padding:40px 24px 40px;align-items:flex-start}
+ form{padding-left:0;max-width:440px}
+}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}to{transform:none;opacity:1}}
+
+/* Telas muito baixas (celular deitado) */
+@media (max-width:760px) and (max-height:500px){.logo{width:min(40vw,44vh)}}
+
+@media (prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important}
+}
