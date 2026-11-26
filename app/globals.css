@@ -139,7 +139,7 @@ button:focus-visible{outline:3px solid var(--w);outline-offset:3px}
 
 /* Tabelas */
 .dash .tbl-lots table{min-width:640px}
-.dash .tbl-unl table{min-width:1080px}
+.dash .tbl-unl table{min-width:760px}
 .dash .tbl{overflow-x:auto;border:1px solid #2a2a2a;border-radius:6px;background:#181818}
 .dash table{width:100%;border-collapse:collapse;font-size:16px}
 .dash th{font:700 15px var(--font-display),sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:left;color:var(--k);background:var(--y) repeating-linear-gradient(115deg,transparent 0 14px,rgba(0,0,0,.07) 14px 16px);padding:10px 12px;white-space:nowrap}

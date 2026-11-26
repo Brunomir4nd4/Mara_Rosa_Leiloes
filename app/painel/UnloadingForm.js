@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { maskCpf, isValidCpf } from "../../lib/cpf";
 
-const EMPTY = { lotId: "", value: "", term: "", buyerName: "", buyerNickname: "", buyerCpf: "" };
+const EMPTY = { lotId: "", buyerNickname: "", buyerCpf: "" };
 
 // Data e horário locais do momento do registro (YYYY-MM-DD e HH:MM)
 function nowLocal() {
@@ -13,11 +13,6 @@ function nowLocal() {
     date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
     time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
   };
-}
-
-function formatBRL(value) {
-  if (value === "" || value == null) return "—";
-  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function formatDate(iso) {
@@ -86,20 +81,6 @@ export default function UnloadingForm({ records, lots = [], onAdd, onUpdate }) {
             )}
           </div>
           <div className="fld">
-            <label htmlFor="unl-value">Valor (R$)</label>
-            <input id="unl-value" type="number" min="0.01" step="0.01" inputMode="decimal" required
-              value={form.value} onChange={(e) => set("value", e.target.value)} />
-          </div>
-          <div className="fld">
-            <label htmlFor="unl-term">Prazo</label>
-            <input id="unl-term" required placeholder="Ex.: 30/60/90 ou 24x"
-              value={form.term} onChange={(e) => set("term", e.target.value)} />
-          </div>
-          <div className="fld">
-            <label htmlFor="unl-buyer-name">Comprador</label>
-            <input id="unl-buyer-name" required value={form.buyerName} onChange={(e) => set("buyerName", e.target.value)} />
-          </div>
-          <div className="fld">
             <label htmlFor="unl-buyer-nick">Apelido (opcional)</label>
             <input id="unl-buyer-nick" value={form.buyerNickname} onChange={(e) => set("buyerNickname", e.target.value)} />
           </div>
@@ -122,7 +103,7 @@ export default function UnloadingForm({ records, lots = [], onAdd, onUpdate }) {
           <table>
             <thead>
               <tr>
-                <th>Fazenda</th><th>Lote</th><th>Valor</th><th>Prazo</th><th>Comprador</th><th>Apelido</th><th>CPF do comprador</th>
+                <th>Fazenda</th><th>Lote</th><th>Apelido</th><th>CPF do comprador</th>
                 <th>Data</th><th>Horário</th><th><span className="sr">Ações</span></th>
               </tr>
             </thead>
@@ -132,9 +113,6 @@ export default function UnloadingForm({ records, lots = [], onAdd, onUpdate }) {
                   <tr key={r.id}>
                     <td>{r.farmName}</td>
                     <td>{r.lot}</td>
-                    <td>{formatBRL(r.value)}</td>
-                    <td>{r.term}</td>
-                    <td>{r.buyerName}</td>
                     <td>{r.buyerNickname || "—"}</td>
                     <td>{r.buyerCpf || "—"}</td>
                     <td>
@@ -155,9 +133,6 @@ export default function UnloadingForm({ records, lots = [], onAdd, onUpdate }) {
                   <tr key={r.id}>
                     <td>{r.farmName}</td>
                     <td>{r.lot}</td>
-                    <td>{formatBRL(r.value)}</td>
-                    <td>{r.term}</td>
-                    <td>{r.buyerName}</td>
                     <td>{r.buyerNickname || "—"}</td>
                     <td>{r.buyerCpf || "—"}</td>
                     <td>{formatDate(r.date)}</td>
