@@ -155,7 +155,7 @@ button:focus-visible{outline:3px solid var(--w);outline-offset:3px}
 
 @media (max-width:760px){
  .dash{grid-template-columns:1fr;grid-template-rows:auto 1fr}
- .dash .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;border-right:0;border-bottom:1px solid var(--y)}
+ .dash .side{position:relative;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;border-right:0;border-bottom:1px solid var(--y)}
  .dash .side{overflow:visible}
  .dash .side::before{width:84px;right:auto;height:100%;clip-path:polygon(0 0,100% 0,78% 100%,0 100%)}
  .dash .dlogo{width:56px;margin:0;flex:none}
