@@ -3,12 +3,10 @@
 import { useState } from "react";
 import FarmForm from "./FarmForm";
 import CattleForm from "./CattleForm";
-import UnloadingForm from "./UnloadingForm";
 
 const SECTIONS = [
   { id: "farm", label: "Fazenda", title: "Cadastro da fazenda", sub: "Dados do titular e da propriedade." },
-  { id: "cattle", label: "Gado / Lotes", title: "Cadastro de lotes", sub: "Registre os lotes de gado para o leilão." },
-  { id: "unloading", label: "Desembarque", title: "Horário de desembarque", sub: "Registre e edite data e horário de desembarque." },
+  { id: "cattle", label: "Desembarque", title: "Desembarque", sub: "Registre os lotes de gado para o leilão." },
 ];
 
 export default function PainelPage() {
@@ -16,7 +14,6 @@ export default function PainelPage() {
   // TODO: carregar estes registros da API/MongoDB (hoje ficam só na sessão do navegador)
   const [farms, setFarms] = useState([]);
   const [lots, setLots] = useState([]);
-  const [unloadings, setUnloadings] = useState([]);
 
   const section = SECTIONS.find((s) => s.id === active);
 
@@ -43,15 +40,7 @@ export default function PainelPage() {
         <h1>{section.title}</h1>
         <p className="dsub">{section.sub}</p>
         {active === "farm" && <FarmForm records={farms} onAdd={(r) => setFarms((l) => [...l, r])} />}
-        {active === "cattle" && <CattleForm records={lots} farms={farms}onAdd={(r) => setLots((l) => [...l, r])} />}
-        {active === "unloading" && (
-          <UnloadingForm
-            records={unloadings}
-            lots={lots}
-            onAdd={(r) => setUnloadings((l) => [...l, r])}
-            onUpdate={(id, data) => setUnloadings((l) => l.map((r) => (r.id === id ? { ...r, ...data } : r)))}
-          />
-        )}
+        {active === "cattle" && <CattleForm records={lots} farms={farms} onAdd={(r) => setLots((l) => [...l, r])} />}
       </main>
     </div>
   );
