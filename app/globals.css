@@ -77,3 +77,105 @@ button:focus-visible{outline:3px solid var(--w);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){
  *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+
+/* ---------- Painel (/painel) — tudo escopado em .dash ---------- */
+@keyframes dash-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.dash{display:grid;grid-template-columns:240px 1fr;min-height:100vh;min-height:100dvh;
+ background:linear-gradient(180deg,#0d0d0d,#111 40%,#0b0b0b)}
+
+/* Sidebar */
+.dash .side{position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:24px;padding:24px 16px;
+ background:#000 repeating-linear-gradient(115deg,transparent 0 38px,rgba(254,194,0,.045) 38px 40px);border-right:1px solid var(--y);overflow:hidden}
+/* painel amarelo atrás do logo, com corte diagonal na base (como o .left do login) */
+.dash .side::before{content:"";position:absolute;top:0;left:0;right:0;height:200px;background:var(--y);clip-path:polygon(0 0,100% 0,100% 88%,0 100%);pointer-events:none}
+.dash .side>*{position:relative;z-index:1}
+.dash .dlogo{display:block;width:140px;height:auto;aspect-ratio:886/861;margin:0 auto 24px;border-radius:8px}
+.dash nav{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.dash nav button{width:100%;clip-path:none;background:transparent;color:var(--w);border:0;border-left:4px solid transparent;border-radius:2px;
+ font:700 19px var(--font-display),sans-serif;letter-spacing:.05em;text-align:left;padding:12px 14px;cursor:pointer;
+ transition:background .15s,color .15s,border-color .15s,transform .15s}
+.dash nav button:hover{background:#1b1b1b;transform:translateX(4px)}
+.dash nav button.on{background:rgba(254,194,0,.16);color:var(--y-hi);border-left-color:var(--y)}
+
+/* Conteúdo */
+.dash .content{padding:40px;min-width:0;max-width:1000px;width:100%;animation:dash-in .28s ease-out both}
+.dash h1{font:800 clamp(32px,3.8vw,48px)/1.05 var(--font-display),sans-serif;margin:0 0 6px;color:var(--w)}
+.dash h1::after{content:"";display:block;width:84px;height:6px;margin-top:12px;background:var(--y);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.dash h2{font:800 24px var(--font-display),sans-serif;letter-spacing:.04em;margin:40px 0 12px;color:var(--w)}
+.dash .dsub{color:var(--mut);margin:0 0 28px;font-size:17px}
+
+/* Cartão do formulário */
+.dash form{max-width:none;padding:24px;position:relative;background:#181818;border:1px solid #2a2a2a;border-top:3px solid var(--y);border-radius:6px;
+ clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%);animation:none;transition:none}
+.dash .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 20px;margin-bottom:22px}
+.dash .fld.wide{grid-column:1/-1}
+.dash label{font:700 16px var(--font-display),sans-serif;letter-spacing:.05em;margin-bottom:6px;color:var(--w)}
+.dash input,.dash select{width:100%;background:#111;border:1px solid #3a3a3a;color:var(--w);
+ font:500 18px var(--font-body),sans-serif;letter-spacing:.02em;padding:11px 12px;outline:none;border-radius:4px;
+ transition:border-color .15s,box-shadow .15s}
+.dash select option{background:#1b1b1b;color:var(--w)}
+.dash input:hover,.dash select:hover{border-color:#5a5a5a}
+.dash input:focus,.dash select:focus{border-color:var(--y);box-shadow:0 0 0 3px rgba(254,194,0,.25)}
+.dash input[type=date],.dash input[type=time]{color-scheme:dark}
+.dash input::placeholder{color:#777}
+
+/* Botões */
+.dash form>button,.dash .act button{width:auto;clip-path:polygon(0 0,100% 0,100% 70%,92% 100%,0 100%);border:0;background:var(--y);color:var(--k);
+ font:800 19px var(--font-display),sans-serif;letter-spacing:.06em;padding:12px 30px 14px 26px;cursor:pointer;transition:background .15s,transform .15s,filter .15s}
+.dash form>button:hover,.dash .act button:hover{background:var(--y-hi);transform:translateY(-2px);filter:drop-shadow(0 4px 8px rgba(254,194,0,.35))}
+.dash button:focus-visible,.dash input:focus-visible,.dash select:focus-visible{outline:3px solid var(--w);outline-offset:2px}
+.dash .act button.ghost{background:transparent;color:var(--y);border:1px solid var(--y);clip-path:none;border-radius:4px;padding:7px 14px;filter:none}
+.dash .act button.ghost:hover{background:#242424;filter:none}
+
+.dash .empty{color:var(--mut);margin:0}
+
+/* Totais */
+.dash .totals{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0 0;padding:0}
+.dash .totals>div{flex:1 1 150px;padding:12px 14px;background:#181818;border:1px solid #2a2a2a;border-left:6px solid var(--y);border-radius:0 6px 6px 0}
+.dash .totals dt{color:var(--mut);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.dash .totals dd{margin:2px 0 0;font:800 40px/1.1 var(--font-display),sans-serif;color:var(--y);font-variant-numeric:tabular-nums}
+
+/* Tabelas */
+.dash .tbl-lots table{min-width:640px}
+.dash .tbl-unl table{min-width:1080px}
+.dash .tbl{overflow-x:auto;border:1px solid #2a2a2a;border-radius:6px;background:#181818}
+.dash table{width:100%;border-collapse:collapse;font-size:16px}
+.dash th{font:700 15px var(--font-display),sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:left;color:var(--k);background:var(--y) repeating-linear-gradient(115deg,transparent 0 14px,rgba(0,0,0,.07) 14px 16px);padding:10px 12px;white-space:nowrap}
+.dash td{padding:10px 12px;border-top:1px solid #2a2a2a;vertical-align:middle}
+.dash tbody tr:nth-child(even) td{background:rgba(255,255,255,.025)}
+.dash tbody tr:hover td{background:rgba(254,194,0,.1)}
+.dash tbody tr:hover td:first-child{box-shadow:inset 3px 0 var(--y)}
+.dash td input{font-size:16px;padding:7px 8px;min-width:130px}
+.dash .act{white-space:nowrap}
+.dash .act button+button{margin-left:8px}
+.dash .act button{font-size:16px;padding:8px 16px}
+.dash .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:760px){
+ .dash{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+ .dash .side{position:static;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;border-right:0;border-bottom:1px solid var(--y)}
+ .dash .side{overflow:visible}
+ .dash .side::before{width:84px;right:auto;height:100%;clip-path:polygon(0 0,100% 0,78% 100%,0 100%)}
+ .dash .dlogo{width:56px;margin:0;flex:none}
+ .dash nav{flex-direction:row;overflow-x:auto;gap:6px;flex:1}
+ .dash nav button{width:auto;white-space:nowrap;font-size:18px;padding:10px 14px;border-left:0}
+ .dash .content{padding:24px 16px}
+ .dash form{padding:18px 14px;clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,0 100%)}
+ .dash nav button:hover{transform:none}
+ .dash .grid{grid-template-columns:1fr}
+ .dash form>button{width:100%}
+}
+.dash .err{min-height:0;margin:6px 0 0;font-size:14px;color:var(--err)}
+.dash .err:empty{display:none}
+.dash input[aria-invalid="true"]{border-color:var(--err)}
+.dash input[aria-invalid="true"]:focus{border-color:var(--err);box-shadow:0 0 0 3px rgba(255,107,94,.3)}
+.dash input[readonly]{border:1px dashed #555;background:#141414;color:var(--y);font-weight:700;cursor:not-allowed}
+.dash input[readonly]:hover,.dash input[readonly]:focus{border-color:#555;box-shadow:none}
+
+@media (prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important}
+}
+/* form vazio usado só para ligar os campos de edição da tabela (atributo form=); não deve aparecer */
+.dash form.edit-form{display:none}
