@@ -56,15 +56,15 @@ export default function FarmForm({ records, onAdd }) {
           </div>
           <div className="fld">
             <label htmlFor="farm-owner">Nome do titular</label>
-            <input id="farm-owner" required value={form.ownerName} onChange={(e) => set("ownerName", e.target.value)} />
+            <input id="farm-owner" required maxLength={120} value={form.ownerName} onChange={(e) => set("ownerName", e.target.value)} />
           </div>
           <div className="fld">
             <label htmlFor="farm-name">Nome da fazenda</label>
-            <input id="farm-name" required value={form.farmName} onChange={(e) => set("farmName", e.target.value)} />
+            <input id="farm-name" required maxLength={120} value={form.farmName} onChange={(e) => set("farmName", e.target.value)} />
           </div>
           <div className="fld">
             <label htmlFor="farm-trade">Nome fantasia (opcional)</label>
-            <input id="farm-trade" value={form.tradeName} onChange={(e) => set("tradeName", e.target.value)} />
+            <input id="farm-trade" maxLength={120} value={form.tradeName} onChange={(e) => set("tradeName", e.target.value)} />
           </div>
           <div className="fld">
             <label htmlFor="farm-cnpj">CNPJ (opcional)</label>
