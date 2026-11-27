@@ -402,7 +402,10 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
   const entriesOf = (record) => record.entryIds.map((id) => entriesById.get(id)).filter(Boolean);
 
   const linkedCount = lots.length;
-  const freeCount = total - linkedCount;
+  // um lote vinculado acima do total (dado antigo ou mudança simultânea) continua aparecendo no quadro
+  const highest = lots.reduce((m, l) => Math.max(m, l.lot), 0);
+  const shownTotal = Math.max(total, highest);
+  const freeCount = Math.max(0, total - lots.filter((l) => l.lot <= total).length);
   const headsInLots = [...summaries.values()].reduce((s, x) => s + x.quantity, 0);
   const waiting = [...available.values()].flat().reduce((s, e) => s + Number(e.quantity), 0);
   const progress = total ? Math.round((linkedCount / total) * 100) : 0;
@@ -456,7 +459,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
     }
   }
 
-  const numbers = Array.from({ length: total }, (_, i) => i + 1);
+  const numbers = Array.from({ length: shownTotal }, (_, i) => i + 1);
   const shown = numbers.filter(matches);
   const selRec = selected ? byNumber.get(selected) : null;
   const selSummary = selRec ? summaries.get(selRec.lot) : null;

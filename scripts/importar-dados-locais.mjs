@@ -5,15 +5,9 @@
 // Lê MONGODB_URI / MONGODB_DB do .env.local.
 import { readFileSync, existsSync } from "node:fs";
 import { MongoClient } from "mongodb";
+import { loadEnv } from "./env.mjs";
 
-function loadEnv(file) {
-  if (!existsSync(file)) return;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2];
-  }
-}
-loadEnv(".env.local");
+loadEnv(".env.local"); // aceita valores entre aspas
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -70,9 +64,10 @@ try {
   }
   await lots.createIndex({ lot: 1 }, { unique: true });
 
-  if (old.settings?.totalLots) {
-    await settings.updateOne({ _id: "leilao" }, { $set: { totalLots: old.settings.totalLots } }, { upsert: true });
-  }
+  // a quantidade de lotes nunca pode ficar menor que o maior lote importado (senão ele some do quadro)
+  const highest = Math.max(0, ...(old.lots ?? []).map((l) => Number(l.lot) || 0));
+  const total = Math.max(old.settings?.totalLots ?? 0, highest);
+  if (total) await settings.updateOne({ _id: "leilao" }, { $max: { totalLots: Math.max(total, 40) } }, { upsert: true });
 
   console.log(`Importado: ${farmCount} fazendas, ${idMap.size} desembarques, ${lotCount} lotes.`);
 } finally {

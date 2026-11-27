@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import FarmForm from "./FarmForm";
 import CattleForm from "./CattleForm";
@@ -39,6 +39,22 @@ export default function PainelPage() {
   const [loading, setLoading] = useState(true);
   const { toasts, push, dismiss } = useToasts();
 
+  // Pista com alterações não salvas: confirma antes de trocar de aba, sair ou fechar a página
+  const pistaDirty = useRef(false);
+  const confirmLeavePista = () =>
+    !pistaDirty.current || window.confirm("Há alterações não salvas no lote da Pista. Sair mesmo assim e perder o que foi digitado?");
+  function goTo(id) {
+    if (id === active) return;
+    if (active === "pista" && !confirmLeavePista()) return;
+    pistaDirty.current = false;
+    setActive(id);
+  }
+  useEffect(() => {
+    const warn = (e) => { if (pistaDirty.current) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
+
   // Lembra a aba aberta (URL ?aba= e sessão) para voltar ao mesmo lugar, ex.: depois do relatório
   useEffect(() => {
     let saved = new URLSearchParams(window.location.search).get("aba");
@@ -57,6 +73,8 @@ export default function PainelPage() {
     const res = await fetch(url, options);
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) {
+      // sessão encerrada/revogada: limpa o cookie antes de ir ao login (evita voltar direto ao painel)
+      await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
       router.replace("/login?next=/painel");
       throw new Error(data.error || "Sessão expirada.");
     }
@@ -151,6 +169,8 @@ export default function PainelPage() {
   }
 
   async function logout() {
+    if (active === "pista" && !confirmLeavePista()) return;
+    pistaDirty.current = false;
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
     router.refresh();
@@ -170,7 +190,7 @@ export default function PainelPage() {
               type="button"
               className={s.id === active ? "on" : ""}
               aria-current={s.id === active ? "page" : undefined}
-              onClick={() => setActive(s.id)}
+              onClick={() => goTo(s.id)}
             >
               <svg className="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={NAV_ICONS[s.id]} /></svg>
               <span>{s.label}</span>
@@ -200,7 +220,8 @@ export default function PainelPage() {
                 goToDesembarque={() => setActive("cattle")} />
             )}
             {active === "pista" && (
-              <PistaBoard lots={lots} entries={entries} onSave={savePista} goToLotes={() => setActive("lots")} />
+              <PistaBoard lots={lots} entries={entries} onSave={savePista} goToLotes={() => setActive("lots")}
+                onDirtyChange={(d) => { pistaDirty.current = d; }} />
             )}
           </>
         )}

@@ -2,6 +2,10 @@ import { getTotalLots, listEntries, listLots } from "../../../lib/db";
 import { label, summarize } from "../../../lib/catalog";
 import { PISTA_STATUS, STATUS_INFO, brl } from "../../../lib/pista";
 import ReportActions from "./ReportActions";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { isValidSessionToken } from "../../../lib/auth";
+import { SESSION_COOKIE } from "../../../lib/session";
 
 // Relatório de pista (pós-leilão). Fica em /painel/*, então só abre com login (middleware).
 export const dynamic = "force-dynamic";
@@ -17,6 +21,10 @@ export async function generateMetadata() {
 }
 
 export default async function RelatorioPage() {
+  // o relatório tem comprador e valores: confere a sessão no banco (não só a assinatura do cookie)
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!(await isValidSessionToken(token))) redirect("/api/auth/logout?next=/painel/relatorio");
+
   const [entryList, lotList, totalLots] = await Promise.all([listEntries(), listLots(), getTotalLots()]);
   const entriesById = new Map(entryList.map((e) => [e.id, e]));
   const rows = lotList.map((l) => {

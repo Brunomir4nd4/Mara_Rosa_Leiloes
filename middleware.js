@@ -5,7 +5,9 @@ import { SESSION_COOKIE, verifySessionToken } from "./lib/session";
 // (o middleware não roda nelas para não limitar o tamanho do upload de vídeo).
 export async function middleware(request) {
   const { pathname, search } = request.nextUrl;
-  const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  // aqui só a assinatura (rápido, roda no edge); a sessão no banco é conferida pelas rotas e páginas com dados
+  const token = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = Boolean(token?.sid);
 
   if (pathname.startsWith("/painel") && !session) {
     const url = new URL("/login", request.url);

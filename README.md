@@ -17,6 +17,9 @@ Para conferir a conexão com o banco: `GET /api/health`.
 
 Cada leiloeiro entra com CPF + senha. A senha nunca fica em texto puro: guardamos só o hash (scrypt).
 
+- A sessão fica registrada no banco (coleção `sessions`): **Sair** encerra de verdade, e tirar um CPF de `ADMIN_ACCOUNTS` corta o acesso na hora.
+- O limite de tentativas de login vale **por CPF** (8 a cada 15 min) e por IP, guardado no banco (`login_attempts`).
+
 ```bash
 npm run hash-senha   # pede CPF e senha e imprime a linha para o ADMIN_ACCOUNTS
 ```
@@ -43,8 +46,12 @@ Cole a linha em `ADMIN_ACCOUNTS` no `.env.local` (várias contas separadas por v
 
 ## Dados (MongoDB)
 
-Coleções: `farms`, `entries` (desembarque), `lots` (com o resultado da pista) e `settings` (quantidade de lotes).
+Coleções: `farms`, `entries` (desembarque), `lots` (com o resultado da pista), `settings` (quantidade de lotes), `sessions`, `login_attempts` e o bucket GridFS `media` (fotos e vídeos).
 
 - O catálogo nunca recebe CPF, CNPJ, titular, comprador ou valores: só os dados do lote e o nome da fazenda.
-- Vídeos ficam em `data/videos/` (fora do git). A rota de envio (`/api/admin/lots/[id]/video`) está pronta para o futuro admin de vídeos.
+- Fotos e vídeos ficam no próprio MongoDB (GridFS), não no disco do servidor. Anexos do desembarque são privados (só com login).
 - Quem usava a versão antiga (arquivo `data/db.json`) pode importar os dados uma vez: `npm run importar-dados-locais`.
+- Arquivos que ficaram no disco (`data/media`, `data/videos`) vão para o banco com: `npm run migrar-arquivos`.
+
+> **Vercel:** cada requisição tem limite de ~4,5 MB. Fotos comuns passam; vídeos maiores precisam de envio direto
+> do navegador para um storage (Vercel Blob ou S3) — isso exige criar o storage e o token na conta da Vercel.

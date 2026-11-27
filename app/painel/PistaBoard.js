@@ -185,7 +185,7 @@ function RingConsole({ lot, summary, entryRows, rows, index, onSave, onNavigate,
 }
 
 /* ---------- Tela da Pista ---------- */
-export default function PistaBoard({ lots, entries, onSave, goToLotes }) {
+export default function PistaBoard({ lots, entries, onSave, goToLotes, onDirtyChange }) {
   const [current, setCurrent] = useState(null);
   const [filter, setFilter] = useState("ALL");
   const [query, setQuery] = useState("");
@@ -194,7 +194,11 @@ export default function PistaBoard({ lots, entries, onSave, goToLotes }) {
   const rowsOf = (lot) => lot.entryIds.map((id) => entriesById.get(id)).filter(Boolean);
   // alterações não salvas no lote aberto (para confirmar antes de trocar)
   const dirtyRef = useRef(false);
-  const onDirty = useRef((d) => { dirtyRef.current = d; }).current;
+  // avisa também o painel (para confirmar antes de trocar de aba ou sair)
+  const dirtyCb = useRef(onDirtyChange);
+  dirtyCb.current = onDirtyChange;
+  const onDirty = useRef((d) => { dirtyRef.current = d; dirtyCb.current?.(d); }).current;
+  useEffect(() => () => dirtyCb.current?.(false), []);
 
   const rows = useMemo(
     () => [...lots].sort((a, b) => a.lot - b.lot).map((l) => ({ lot: l, s: summarize(rowsOf(l)), status: l.pista?.status ?? "AGUARDANDO" })),

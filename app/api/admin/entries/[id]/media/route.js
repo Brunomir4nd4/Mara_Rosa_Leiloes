@@ -1,5 +1,5 @@
 import { addEntryMedia, getEntry } from "../../../../../../lib/db";
-import { MAX_PHOTO, MAX_VIDEO, MEDIA_DIR, MEDIA_TYPES, removeMediaFile, saveUpload } from "../../../../../../lib/files";
+import { MAX_PHOTO, MAX_VIDEO, MEDIA_TYPES, removeMediaFile, saveUpload } from "../../../../../../lib/files";
 import { fail, json, requireAdmin, serverError } from "../../../../../../lib/api";
 
 export const runtime = "nodejs";
@@ -24,7 +24,6 @@ export async function POST(request, { params }) {
 
     const isPhoto = t.kind === "photo";
     const saved = await saveUpload(request, {
-      dir: MEDIA_DIR,
       prefix: `desembarque-${t.kind}`,
       ext: t.ext,
       maxBytes: isPhoto ? MAX_PHOTO : MAX_VIDEO,

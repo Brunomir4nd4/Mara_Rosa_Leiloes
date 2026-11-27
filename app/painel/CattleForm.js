@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BREEDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES, categoryOf, isFemale, isRefugo, label } from "../../lib/catalog";
 import Select from "../_ui/Select";
 import NumberStepper from "../_ui/NumberStepper";
+import DateTimePicker from "../_ui/DateTimePicker";
 import MediaGallery, { ACCEPT_MEDIA, checkFile, uploadMedia } from "./MediaGallery";
 import { arrivalError, formatDateTime, toLocalInput } from "../../lib/datetime";
 
@@ -210,24 +211,17 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
           </div>
           <div className={fieldClass("arrivedAt")}>
             <label htmlFor="des-date">Data e hora do desembarque</label>
-            <div className={`dt-field${form.dateEdited ? " edited" : ""}${show("arrivedAt") ? " invalid" : ""}`}>
-              <svg className="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3zm-1 8v10h12V10zm2 2h3v3H8z" /></svg>
-              <input id="des-date" type="datetime-local" value={form.arrivedAt} max={toLocalInput()}
-                aria-invalid={show("arrivedAt") ? "true" : "false"} aria-describedby="des-date-err des-date-hint"
-                onChange={(e) => { setForm((f) => ({ ...f, arrivedAt: e.target.value, dateEdited: true })); setSubmitError(""); }}
-                onBlur={() => touch("arrivedAt")} />
-              {form.dateEdited ? (
-                <button type="button" className="dt-now" onClick={() => setForm((f) => ({ ...f, arrivedAt: toLocalInput(), dateEdited: false }))}>
-                  Usar agora
-                </button>
-              ) : (
-                <span className="dt-auto" aria-hidden="true">Automático</span>
-              )}
-            </div>
+            <DateTimePicker id="des-date" value={form.arrivedAt} invalid={Boolean(show("arrivedAt"))}
+              describedBy="des-date-err des-date-hint" onBlur={() => touch("arrivedAt")}
+              onChange={(v) => { setForm((f) => ({ ...f, arrivedAt: v, dateEdited: true })); setSubmitError(""); }}
+              badge={form.dateEdited ? <span className="dt-edit">Ajustado</span> : <span className="dt-auto">Automático</span>} />
             <FieldError id="des-date-err" message={show("arrivedAt")} />
             {!show("arrivedAt") && (
               <p className="hint" id="des-date-hint">
-                {form.dateEdited ? "Data e hora ajustadas manualmente." : "Preenchido com a hora atual. Toque para alterar, se precisar."}
+                {form.dateEdited ? (
+                  <>Data e hora ajustadas manualmente. <button type="button" className="linkbtn"
+                    onClick={() => setForm((f) => ({ ...f, arrivedAt: toLocalInput(), dateEdited: false }))}>Usar agora</button></>
+                ) : "Preenchido com a hora atual. Toque para alterar, se precisar."}
               </p>
             )}
           </div>

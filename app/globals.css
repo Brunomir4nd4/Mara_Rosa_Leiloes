@@ -1403,3 +1403,66 @@ a.ltab:focus-visible{outline:3px solid var(--w);outline-offset:2px}
 .dash td.nowrap{white-space:nowrap}
 .ecard-date,.ld-date{color:var(--mut);font-size:12px}
 .gd-date{margin:4px 0 0;color:var(--mut);font-size:13px}
+
+/* ===================== Calendário personalizado (DateTimePicker) ===================== */
+.dtp{position:relative;min-width:0}
+.dash .dtp button{clip-path:none;letter-spacing:normal}
+.dash .dtp button.dtp-btn{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 10px 0 12px;margin:0;border:1px solid #3a3a3a;border-radius:6px;background:#111;
+ color:var(--w);font:600 16px var(--font-body),sans-serif;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .2s,background .15s}
+.dash .dtp button.dtp-btn:hover:not(:disabled){background:#161616;border-color:#5a5a5a;transform:none;filter:none}
+.dtp.open .dtp-btn,.dash .dtp button.dtp-btn:focus-visible{border-color:var(--y)!important;box-shadow:0 0 0 3px rgba(254,194,0,.22);outline:none}
+.dtp.invalid .dtp-btn{border-color:var(--err)!important}
+.dtp-ico{flex:none;width:20px;height:20px;fill:var(--y)}
+.dtp-val{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.dt-edit{flex:none;padding:3px 9px;border-radius:999px;background:rgba(255,179,127,.12);border:1px solid rgba(255,179,127,.45);color:#ffb37f;
+ font:800 11px var(--font-display),sans-serif;letter-spacing:.1em;text-transform:uppercase}
+
+.dtp-pop{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:min(340px,calc(100vw - 32px));padding:14px;border-radius:14px;background:#1b1b1b;border:1px solid #333;
+ border-top:3px solid var(--y);box-shadow:0 30px 60px -16px rgba(0,0,0,.85);animation:sel-in .22s var(--ease) both}
+.dtp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dtp-head strong{font:800 19px var(--font-display),sans-serif;letter-spacing:.03em}
+.dtp-head strong span{color:var(--y)}
+.dash .dtp button.dtp-nav{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #3a3a3a;border-radius:50%;background:#141414;color:var(--w);font:600 20px/1 var(--font-body),sans-serif;cursor:pointer}
+.dash .dtp button.dtp-nav:hover:not(:disabled){border-color:var(--y);color:var(--y);background:#202020;transform:none;filter:none}
+.dash .dtp button.dtp-nav:disabled{opacity:.3;cursor:not-allowed}
+.dtp-week,.dtp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dtp-week span{padding:4px 0;text-align:center;color:var(--mut);font:800 12px var(--font-display),sans-serif;letter-spacing:.1em}
+.dash .dtp button.dtp-day{position:relative;aspect-ratio:1;padding:0;border:0;border-radius:9px;background:transparent;color:#e6e6e6;font:700 15px var(--font-body),sans-serif;
+ cursor:pointer;transition:background .15s,color .15s,transform .15s}
+.dash .dtp button.dtp-day:hover:not(:disabled){background:#2a2a2a;transform:none;filter:none}
+.dash .dtp button.dtp-day.out{color:#5e5e5e}
+.dash .dtp button.dtp-day.today{box-shadow:inset 0 0 0 1.5px var(--y);color:var(--y)}
+.dash .dtp button.dtp-day.sel{background:var(--y);color:var(--k);box-shadow:0 6px 14px -6px rgba(254,194,0,.8)}
+.dash .dtp button.dtp-day.sel:hover:not(:disabled){background:var(--y-hi)}
+.dash .dtp button.dtp-day:disabled{color:#3d3d3d;cursor:not-allowed;text-decoration:line-through;text-decoration-color:#333}
+.dash .dtp button.dtp-day:focus-visible{outline:2px solid var(--w);outline-offset:1px}
+
+.dtp-time{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #2a2a2a}
+.dtp-tlabel{margin-right:auto;font:800 14px var(--font-display),sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.dtp-spin{display:flex;align-items:center;border:1px solid #3a3a3a;border-radius:10px;overflow:hidden;background:#111}
+.dash .dtp .dtp-spin button{width:34px;height:40px;padding:0;border:0;border-radius:0;background:#1d1d1d;color:var(--y);font:700 18px var(--font-body),sans-serif;cursor:pointer}
+.dash .dtp .dtp-spin button:hover:not(:disabled){background:#2a2a2a;transform:none;filter:none}
+.dash .dtp .dtp-spin button:active{background:var(--y);color:var(--k)}
+.dtp-spin output{min-width:42px;text-align:center;font:800 22px var(--font-display),sans-serif;font-variant-numeric:tabular-nums}
+.dtp-colon{font:800 22px var(--font-display),sans-serif;color:var(--y)}
+.dtp-quick{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+.dash .dtp .dtp-quick button{padding:5px 11px;border:1px solid #3a3a3a;border-radius:999px;background:#151515;color:#ccc;font:700 13px var(--font-display),sans-serif;letter-spacing:.04em;cursor:pointer}
+.dash .dtp .dtp-quick button:hover:not(:disabled){border-color:var(--y);transform:none;filter:none;background:#1e1e1e}
+.dash .dtp .dtp-quick button.on{background:var(--y);border-color:var(--y);color:var(--k)}
+.dtp-foot{display:flex;align-items:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #2a2a2a}
+.dash .dtp button.dtp-link{padding:0;border:0;background:none;color:var(--y);font:700 14px var(--font-display),sans-serif;letter-spacing:.05em;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.dash .dtp button.dtp-link:hover:not(:disabled){background:none;transform:none;filter:none;color:var(--y-hi)}
+.dash .dtp button.dtp-ok{margin-left:auto;padding:9px 18px;border:0;border-radius:8px;background:var(--y);color:var(--k);font:800 15px var(--font-display),sans-serif;letter-spacing:.05em;cursor:pointer}
+.dash .dtp button.dtp-ok:hover:not(:disabled){background:var(--y-hi);transform:none;filter:none}
+.dash .hint .linkbtn{width:auto;padding:0;clip-path:none;border:0;background:none;margin-left:4px;font-size:13px;cursor:pointer}
+.dash .hint .linkbtn:hover:not(:disabled){background:none;transform:none;filter:none}
+@media (max-width:760px){
+ .dtp-pop{position:fixed;left:16px;right:16px;top:auto;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 160px);overflow:auto}
+}
+
+/* Catálogo indisponível (banco fora do ar) */
+.cat-down{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;background:var(--k)}
+.cat-down img{width:140px;height:auto;border-radius:12px}
+.cat-down h1{margin:8px 0 0;font:800 clamp(28px,4vw,40px) var(--font-display),sans-serif}
+.cat-down p{margin:0;color:var(--mut)}
+.cat-down a{margin-top:8px;padding:10px 20px;border-radius:8px;background:var(--y);color:var(--k);text-decoration:none;font:800 16px var(--font-display),sans-serif;letter-spacing:.05em}

@@ -26,8 +26,12 @@ export async function POST(request) {
   if (denied) return denied;
 
   const b = await readJson(request);
+  if (!b || typeof b !== "object" || Array.isArray(b)) return fail("Dados inválidos.", 400);
+  if (["farm", "notes", "arrivedAt"].some((k) => b[k] != null && typeof b[k] !== "string")) {
+    return fail("Dados inválidos: os campos devem ser texto.", 400);
+  }
   const data = {
-    farm: String(b?.farm ?? "").trim(),
+    farm: (b.farm ?? "").trim(),
     quantity: intIn(b?.quantity, LIMITS.quantity),
     sexType: b?.sexType,
     ageMonths: intIn(b?.ageMonths, LIMITS.ageMonths),
@@ -42,7 +46,7 @@ export async function POST(request) {
   if (data.kind === "REFUGO") {
     if (!REFUGO_REASONS.includes(b?.reason)) return fail("Informe o motivo do refugo.", 400);
     data.reason = b.reason;
-    data.notes = String(b?.notes ?? "").trim();
+    data.notes = (b.notes ?? "").trim();
     if (data.reason === "OUTRO" && data.notes.length < 3) return fail("Descreva o problema em Observações.", 400);
     if (data.notes.length > 500) return fail("Observações com no máximo 500 caracteres.", 400);
   }

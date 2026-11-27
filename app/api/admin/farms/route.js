@@ -6,6 +6,9 @@ import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib
 
 export const dynamic = "force-dynamic";
 
+const MAX_NAME = 120;
+const FIELDS = ["cpf", "ownerName", "phone", "farmName", "tradeName", "cnpj"];
+
 export async function GET(request) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
@@ -21,22 +24,31 @@ export async function POST(request) {
   if (denied) return denied;
 
   const b = await readJson(request);
-  const str = (v) => String(v ?? "").trim();
-  const data = {
-    cpf: maskCpf(str(b?.cpf)),
-    ownerName: str(b?.ownerName),
-    phone: maskPhone(str(b?.phone)),
-    farmName: str(b?.farmName),
-    tradeName: str(b?.tradeName),
-    cnpj: str(b?.cnpj) ? maskCnpj(str(b.cnpj)) : "",
-  };
-  if (!isValidCpf(data.cpf)) return fail("CPF do titular inválido.", 400);
-  if (!data.ownerName || !data.farmName) return fail("Preencha o nome do titular e o nome da fazenda.", 400);
-  if (!isValidPhone(data.phone)) return fail("Telefone inválido. Use DDD + número, ex.: (62) 99999-9999.", 400);
-  if (data.cnpj && !isValidCnpj(data.cnpj)) return fail("CNPJ inválido.", 400);
-  if ([data.ownerName, data.farmName, data.tradeName].some((v) => v.length > 120)) {
-    return fail("Os nomes podem ter no máximo 120 caracteres.", 400);
+  if (!b || typeof b !== "object" || Array.isArray(b)) return fail("Dados inválidos.", 400);
+  // todos os campos precisam ser texto (um objeto não pode virar "[object Object]")
+  if (FIELDS.some((k) => b[k] != null && typeof b[k] !== "string")) return fail("Dados inválidos: os campos devem ser texto.", 400);
+
+  const raw = Object.fromEntries(FIELDS.map((k) => [k, (b[k] ?? "").trim()]));
+
+  // Valida o valor como chegou, ANTES da máscara (a máscara corta caracteres a mais)
+  if (!/^[\d.\-\s]*$/.test(raw.cpf) || !isValidCpf(raw.cpf)) return fail("CPF do titular inválido.", 400);
+  if (!raw.ownerName || !raw.farmName) return fail("Preencha o nome do titular e o nome da fazenda.", 400);
+  if (!/^[\d()\-\s+]*$/.test(raw.phone) || !isValidPhone(raw.phone)) {
+    return fail("Telefone inválido. Use DDD + número, ex.: (62) 99999-9999.", 400);
   }
+  if (raw.cnpj && (!/^[\dA-Za-z.\-/\s]*$/.test(raw.cnpj) || !isValidCnpj(raw.cnpj))) return fail("CNPJ inválido.", 400);
+  if ([raw.ownerName, raw.farmName, raw.tradeName].some((v) => v.length > MAX_NAME)) {
+    return fail(`Os nomes podem ter no máximo ${MAX_NAME} caracteres.`, 400);
+  }
+
+  const data = {
+    cpf: maskCpf(raw.cpf),
+    ownerName: raw.ownerName,
+    phone: maskPhone(raw.phone),
+    farmName: raw.farmName,
+    tradeName: raw.tradeName,
+    cnpj: raw.cnpj ? maskCnpj(raw.cnpj) : "",
+  };
 
   try {
     return json(await addFarm(data), 201);

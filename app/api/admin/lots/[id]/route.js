@@ -1,6 +1,5 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { unlinkLot, VIDEO_DIR } from "../../../../../lib/db";
+import { unlinkLot } from "../../../../../lib/db";
+import { removeMediaFile } from "../../../../../lib/files";
 import { fail, json, requireAdmin, serverError } from "../../../../../lib/api";
 
 export const runtime = "nodejs";
@@ -14,7 +13,7 @@ export async function DELETE(request, { params }) {
   const { id } = await params;
   try {
     const removed = await unlinkLot(id);
-    if (removed.video?.file) await fs.rm(path.join(VIDEO_DIR, removed.video.file), { force: true });
+    await removeMediaFile(removed.video?.file);
     return json({ ok: true, lot: removed.lot });
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
