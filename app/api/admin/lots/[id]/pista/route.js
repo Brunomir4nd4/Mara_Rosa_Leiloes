@@ -1,6 +1,6 @@
 import { setLotPista } from "../../../../../../lib/db";
 import { normalizePista, validatePista } from "../../../../../../lib/pista";
-import { fail, json, readJson, requireAdmin } from "../../../../../../lib/api";
+import { fail, json, readJson, requireAdmin, serverError } from "../../../../../../lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,6 @@ export async function PUT(request, { params }) {
     return json(await setLotPista(id, normalizePista(data)));
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }

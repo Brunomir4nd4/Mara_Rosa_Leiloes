@@ -98,21 +98,21 @@ export default function FarmForm({ records, onAdd }) {
           </div>
           <div className={fieldClass("ownerName")}>
             <label htmlFor="farm-owner">Nome do titular</label>
-            <input id="farm-owner" autoComplete="off" placeholder="Nome completo"
+            <input id="farm-owner" autoComplete="off" placeholder="Nome completo" maxLength={120}
               aria-invalid={show("ownerName") ? "true" : "false"} aria-describedby="farm-owner-err"
               value={form.ownerName} onChange={(e) => set("ownerName", e.target.value)} onBlur={() => touch("ownerName")} />
             <FieldError id="farm-owner-err" message={show("ownerName")} />
           </div>
           <div className={fieldClass("farmName")}>
             <label htmlFor="farm-name">Nome da fazenda</label>
-            <input id="farm-name" autoComplete="off" placeholder="Ex.: Fazenda Boa Vista"
+            <input id="farm-name" autoComplete="off" placeholder="Ex.: Fazenda Boa Vista" maxLength={120}
               aria-invalid={show("farmName") ? "true" : "false"} aria-describedby="farm-name-err"
               value={form.farmName} onChange={(e) => set("farmName", e.target.value)} onBlur={() => touch("farmName")} />
             <FieldError id="farm-name-err" message={show("farmName")} />
           </div>
           <div className="fld">
             <label htmlFor="farm-trade">Nome fantasia <span className="opt">(opcional)</span></label>
-            <input id="farm-trade" autoComplete="off" value={form.tradeName} onChange={(e) => set("tradeName", e.target.value)} />
+            <input id="farm-trade" autoComplete="off" maxLength={120} value={form.tradeName} onChange={(e) => set("tradeName", e.target.value)} />
           </div>
           <div className={fieldClass("cnpj")}>
             <label htmlFor="farm-cnpj">CNPJ <span className="opt">(opcional)</span></label>

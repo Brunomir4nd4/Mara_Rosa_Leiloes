@@ -1,12 +1,17 @@
 # Mara_Rosa_Leiloes
 
-Catálogo público de lotes + painel do leiloeiro com login por CPF (Next.js + React, JavaScript).
+Catálogo público de lotes + painel do leiloeiro com login por CPF e senha (Next.js + React + MongoDB, JavaScript).
 
 ```bash
-cp .env.example .env.local   # preencha AUTH_SECRET e ADMIN_ACCOUNTS
+cp .env.example .env.local   # preencha AUTH_SECRET, ADMIN_ACCOUNTS e MONGODB_URI
 npm install
 npm run dev
 ```
+
+Para conferir a conexão com o banco: `GET /api/health`.
+
+> Atenção: variáveis definidas no sistema operacional têm prioridade sobre o `.env.local`.
+> Se a sua máquina já tiver uma `MONGODB_URI` global (de outro projeto), o Next.js vai usá-la.
 
 ## Contas do painel
 
@@ -22,20 +27,24 @@ Cole a linha em `ADMIN_ACCOUNTS` no `.env.local` (várias contas separadas por v
 
 | Rota | Acesso | O que faz |
 | --- | --- | --- |
-| `/` | público | Catálogo de lotes com vídeo e filtros (sexo, qualidade, raça, só com vídeo) |
+| `/` | público | Catálogo de lotes com filtros (sexo, categoria, qualidade, raça) |
 | `/login` | público | Login por CPF + senha (contas em `ADMIN_ACCOUNTS`) |
-| `/painel` | logado | Fazendas, Desembarque (gado que chegou) e Lotes (mapa de currais para vincular fazenda + gado) |
+| `/painel` | logado | Fazenda, Desembarque, Lotes e Pista |
+| `/painel/relatorio` | logado | Relatório de pista pós-leilão (visualizar / baixar PDF) |
+| `/api/admin/*` | logado | API do painel (fazendas, desembarques, lotes, pista, quantidade de lotes) |
+| `/api/health` | público | Verifica a conexão com o MongoDB |
 
 ## Fluxo do painel
 
 1. **Fazenda** – cadastra a fazenda e o titular.
 2. **Desembarque** – registra o gado que chegou de cada fazenda (sem número de lote). A categoria (bezerros, garrotes, novilhas…) é calculada pelo sexo + idade.
-3. **Lotes** – mapa com `TOTAL_LOTS` lotes (em `lib/catalog.js`). Clique em um lote livre, escolha a fazenda e marque os registros do desembarque dela. Só lotes vinculados aparecem no catálogo público.
+3. **Lotes** – quadro de lotes (40 por padrão, ajustável no painel até 500). Clique em um lote disponível, escolha a fazenda e marque os registros do desembarque dela. Só lotes vinculados aparecem no catálogo público.
+4. **Pista** – durante o leilão, registra o resultado de cada lote (arrematado, defendido, não arrematado) com valor, comprador, prazo, proposta e valor pretendido.
 
-## Dados
+## Dados (MongoDB)
 
-- Fazendas, desembarques e lotes ficam em `data/db.json`; vídeos em `data/videos/` (pasta fora do git).
-- Vídeos: a rota de envio (`/api/admin/lots/[id]/video`) continua pronta para o futuro admin de vídeos; o painel não tem mais esse campo.
-- O catálogo nunca recebe CPF, CNPJ ou nome do titular: só os dados do lote e o nome da fazenda.
+Coleções: `farms`, `entries` (desembarque), `lots` (com o resultado da pista) e `settings` (quantidade de lotes).
 
-> Simplificação: o armazenamento em arquivo funciona para um único servidor. Para produção, troque `lib/db.js` por MongoDB e os vídeos por um storage (S3, R2…).
+- O catálogo nunca recebe CPF, CNPJ, titular, comprador ou valores: só os dados do lote e o nome da fazenda.
+- Vídeos ficam em `data/videos/` (fora do git). A rota de envio (`/api/admin/lots/[id]/video`) está pronta para o futuro admin de vídeos.
+- Quem usava a versão antiga (arquivo `data/db.json`) pode importar os dados uma vez: `npm run importar-dados-locais`.

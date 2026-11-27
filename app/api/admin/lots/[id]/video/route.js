@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { getLot, setLotVideo, VIDEO_DIR } from "../../../../../../lib/db";
-import { fail, json, requireAdmin } from "../../../../../../lib/api";
+import { fail, json, requireAdmin, serverError } from "../../../../../../lib/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,6 +86,6 @@ export async function DELETE(request, { params }) {
     return json(lot);
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }

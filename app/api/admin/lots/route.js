@@ -1,12 +1,16 @@
 import { linkLot, listLots } from "../../../../lib/db";
-import { fail, json, readJson, requireAdmin } from "../../../../lib/api";
+import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
-  return json(listLots());
+  try {
+    return json(await listLots());
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 // Vincula um lote do mapa a uma fazenda e a registros do desembarque dela
@@ -24,6 +28,6 @@ export async function POST(request) {
     return json(await linkLot({ lot, farm, entryIds }), 201);
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }

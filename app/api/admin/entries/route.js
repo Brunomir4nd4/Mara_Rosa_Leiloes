@@ -1,6 +1,6 @@
 import { addEntry, listEntries } from "../../../../lib/db";
 import { BREEDS, LIMITS, QUALITIES, SEX_TYPES } from "../../../../lib/catalog";
-import { fail, json, readJson, requireAdmin } from "../../../../lib/api";
+import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
-  return json(listEntries());
+  try {
+    return json(await listEntries());
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 const intIn = (v, max) => {
@@ -40,6 +44,6 @@ export async function POST(request) {
     return json(await addEntry(data), 201);
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }

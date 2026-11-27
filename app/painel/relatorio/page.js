@@ -16,9 +16,10 @@ export async function generateMetadata() {
   return { title: `Relatorio-de-pista-Mara-Rosa-${d}` };
 }
 
-export default function RelatorioPage() {
-  const entriesById = new Map(listEntries().map((e) => [e.id, e]));
-  const rows = listLots().map((l) => {
+export default async function RelatorioPage() {
+  const [entryList, lotList, totalLots] = await Promise.all([listEntries(), listLots(), getTotalLots()]);
+  const entriesById = new Map(entryList.map((e) => [e.id, e]));
+  const rows = lotList.map((l) => {
     const entries = l.entryIds.map((id) => entriesById.get(id)).filter(Boolean);
     return { lot: l, entries, s: summarize(entries), status: l.pista?.status ?? "AGUARDANDO", p: l.pista ?? {} };
   });
@@ -62,7 +63,7 @@ export default function RelatorioPage() {
           </div>
           <dl className="rp-meta">
             <div><dt>Lotes ofertados</dt><dd>{offeredLots}</dd></div>
-            <div><dt>Lotes no quadro</dt><dd>{getTotalLots()}</dd></div>
+            <div><dt>Lotes no quadro</dt><dd>{totalLots}</dd></div>
             <div><dt>Cabeças ofertadas</dt><dd>{fmt(allHeads)}</dd></div>
           </dl>
         </header>

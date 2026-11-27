@@ -1,6 +1,6 @@
 import { changeTotalLots, getTotalLots } from "../../../../../lib/db";
 import { MAX_LOTS } from "../../../../../lib/catalog";
-import { fail, json, readJson, requireAdmin } from "../../../../../lib/api";
+import { fail, json, readJson, requireAdmin, serverError } from "../../../../../lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
-  return json({ total: getTotalLots(), max: MAX_LOTS });
+  try {
+    return json({ total: await getTotalLots(), max: MAX_LOTS });
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 // { add: n } cria n lotes no final; { remove: n } remove n lotes disponíveis do final
@@ -28,6 +32,6 @@ export async function POST(request) {
     return json({ ...(await changeTotalLots(delta)), max: MAX_LOTS });
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }

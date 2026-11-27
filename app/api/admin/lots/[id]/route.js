@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { unlinkLot, VIDEO_DIR } from "../../../../../lib/db";
-import { fail, json, requireAdmin } from "../../../../../lib/api";
+import { fail, json, requireAdmin, serverError } from "../../../../../lib/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +18,6 @@ export async function DELETE(request, { params }) {
     return json({ ok: true, lot: removed.lot });
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
-    throw e;
+    return serverError(e);
   }
 }
