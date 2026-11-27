@@ -1,6 +1,7 @@
 import { addEntry, listEntries } from "../../../../lib/db";
 import { BREEDS, ENTRY_KINDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES } from "../../../../lib/catalog";
 import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
+import { arrivalError } from "../../../../lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,12 @@ export async function POST(request) {
     if (data.reason === "OUTRO" && data.notes.length < 3) return fail("Descreva o problema em Observações.", 400);
     if (data.notes.length > 500) return fail("Observações com no máximo 500 caracteres.", 400);
   }
+  // data e hora do desembarque: se não vier, usa o momento do cadastro
+  const arrived = b?.arrivedAt ? new Date(b.arrivedAt) : new Date();
+  const dateError = arrivalError(arrived);
+  if (dateError) return fail(dateError, 400);
+  data.arrivedAt = arrived.toISOString();
+
   if (!data.farm) return fail("Selecione a fazenda.", 400);
   if (!data.quantity) return fail(`Quantidade deve ser um número inteiro entre 1 e ${LIMITS.quantity}.`, 400);
   if (!data.ageMonths) return fail(`Idade deve ser um número inteiro entre 1 e ${LIMITS.ageMonths} meses.`, 400);

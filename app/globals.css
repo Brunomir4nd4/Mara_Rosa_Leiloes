@@ -1380,3 +1380,26 @@ a.ltab:focus-visible{outline:3px solid var(--w);outline-offset:2px}
  .dash .side>nav{position:fixed;z-index:30}
  .dash .side>.logout{margin-left:auto}
 }
+
+/* Placa de lote de refugo: etiqueta no corpo (não estoura o cabeçalho) */
+.lt-ref{align-self:flex-start;max-width:100%;padding:1px 7px;border-radius:4px;background:rgba(255,138,61,.16);border:1px solid rgba(255,138,61,.5);color:#ffb37f;
+ font:800 10px/1.5 var(--font-display),sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Data e hora do desembarque */
+.dt-field{display:flex;align-items:center;gap:0;border:1px solid #3a3a3a;border-radius:6px;background:#111;transition:border-color .15s,box-shadow .15s}
+.dt-field:focus-within{border-color:var(--y);box-shadow:0 0 0 3px rgba(254,194,0,.22)}
+.dt-field.invalid{border-color:var(--err)}
+.dt-ico{flex:none;width:20px;height:20px;margin-left:12px;fill:var(--y)}
+.dash .dt-field input{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;color-scheme:dark;font:600 17px var(--font-body),sans-serif;padding:11px 10px}
+.dash .dt-field input:focus,.dash .dt-field input:focus-visible{box-shadow:none;outline:none}
+.dash .dt-field input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.85;filter:invert(.8) sepia(1) saturate(5) hue-rotate(5deg)}
+.dt-auto{flex:none;margin-right:8px;padding:3px 9px;border-radius:999px;background:rgba(62,207,142,.12);border:1px solid rgba(62,207,142,.45);color:#7fe3b4;
+ font:800 11px var(--font-display),sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.dt-auto::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#3ecf8e;vertical-align:1px;animation:live 1.6s infinite}
+.dash .dt-field button.dt-now{flex:none;width:auto;margin:0 6px 0 0;padding:6px 10px;clip-path:none;border:1px solid var(--y);border-radius:6px;background:transparent;color:var(--y);
+ font:800 12px var(--font-display),sans-serif;letter-spacing:.06em;cursor:pointer}
+.dash .dt-field button.dt-now:hover:not(:disabled){background:var(--y);color:var(--k);transform:none;filter:none}
+.dt-field.edited .dt-ico{fill:#ffb37f}
+.dash td.nowrap{white-space:nowrap}
+.ecard-date,.ld-date{color:var(--mut);font-size:12px}
+.gd-date{margin:4px 0 0;color:var(--mut);font-size:13px}

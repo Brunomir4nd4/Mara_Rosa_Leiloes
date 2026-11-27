@@ -5,11 +5,14 @@ import { BREEDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES, categoryOf, isFem
 import Select from "../_ui/Select";
 import NumberStepper from "../_ui/NumberStepper";
 import MediaGallery, { ACCEPT_MEDIA, checkFile, uploadMedia } from "./MediaGallery";
+import { arrivalError, formatDateTime, toLocalInput } from "../../lib/datetime";
 
-const EMPTY = { kind: "NORMAL", farm: "", quantity: "", sexType: "", ageMonths: "", breed: "", quality: "", reason: "", notes: "" };
+// arrivedAt começa com a hora atual e segue o relógio até o usuário alterar (dateEdited)
+const EMPTY = { kind: "NORMAL", farm: "", arrivedAt: "", dateEdited: false, quantity: "", sexType: "", ageMonths: "", breed: "", quality: "", reason: "", notes: "" };
 
 const FIELDS = [
   { key: "farm", id: "des-farm", label: "Fazenda" },
+  { key: "arrivedAt", id: "des-date", label: "Data e hora" },
   { key: "quantity", id: "des-qty", label: "Quantidade" },
   { key: "sexType", id: "des-sex", label: "Sexo / Tipo" },
   { key: "ageMonths", id: "des-age", label: "Idade" },
@@ -32,6 +35,7 @@ function validate(form) {
   const refugo = form.kind === "REFUGO";
   const errors = {
     farm: form.farm ? "" : "Escolha a fazenda de origem do gado.",
+    arrivedAt: form.dateEdited ? arrivalError(form.arrivedAt && new Date(form.arrivedAt)) : "",
     quantity: intError(form.quantity, LIMITS.quantity, "a quantidade de cabeças"),
     sexType: form.sexType ? "" : "Escolha o sexo / tipo.",
     ageMonths: intError(form.ageMonths, LIMITS.ageMonths, "a idade em meses"),
@@ -57,6 +61,14 @@ const KIND_TABS = [
 
 export default function CattleForm({ records, farms = [], lots = [], onAdd, onEntryChange }) {
   const [form, setForm] = useState(EMPTY);
+
+  // data e hora automáticas: acompanham o relógio enquanto o usuário não alterar
+  useEffect(() => {
+    const tick = () => setForm((f) => (f.dateEdited ? f : { ...f, arrivedAt: toLocalInput() }));
+    tick();
+    const t = setInterval(tick, 20000);
+    return () => clearInterval(t);
+  }, []);
   const [files, setFiles] = useState([]); // anexos escolhidos antes de salvar
   const [fileError, setFileError] = useState("");
   const [uploading, setUploading] = useState(null); // { done, total, progress }
@@ -109,7 +121,9 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
     }
     setSaving(true);
     try {
-      const payload = refugo ? form : { ...form, reason: "", notes: "" };
+      const { dateEdited, ...rest } = form;
+      const arrivedAt = (dateEdited ? new Date(form.arrivedAt) : new Date()).toISOString();
+      const payload = refugo ? { ...rest, arrivedAt } : { ...rest, arrivedAt, reason: "", notes: "" };
       let entry = await onAdd(payload);
       // anexos: enviados um por vez depois que o registro existe
       if (refugo && files.length) {
@@ -119,7 +133,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
           onEntryChange(entry);
         }
       }
-      setForm(EMPTY);
+      setForm({ ...EMPTY, arrivedAt: toLocalInput() });
       setFiles([]);
       setTouched({});
       setSubmitted(false);
@@ -192,6 +206,29 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
             <FieldError id="des-farm-err" message={show("farm")} />
             {farmNames.length === 0 && (
               <p className="hint" id="des-farm-hint">Cadastre uma fazenda na aba Fazenda para registrar o desembarque.</p>
+            )}
+          </div>
+          <div className={fieldClass("arrivedAt")}>
+            <label htmlFor="des-date">Data e hora do desembarque</label>
+            <div className={`dt-field${form.dateEdited ? " edited" : ""}${show("arrivedAt") ? " invalid" : ""}`}>
+              <svg className="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3zm-1 8v10h12V10zm2 2h3v3H8z" /></svg>
+              <input id="des-date" type="datetime-local" value={form.arrivedAt} max={toLocalInput()}
+                aria-invalid={show("arrivedAt") ? "true" : "false"} aria-describedby="des-date-err des-date-hint"
+                onChange={(e) => { setForm((f) => ({ ...f, arrivedAt: e.target.value, dateEdited: true })); setSubmitError(""); }}
+                onBlur={() => touch("arrivedAt")} />
+              {form.dateEdited ? (
+                <button type="button" className="dt-now" onClick={() => setForm((f) => ({ ...f, arrivedAt: toLocalInput(), dateEdited: false }))}>
+                  Usar agora
+                </button>
+              ) : (
+                <span className="dt-auto" aria-hidden="true">Automático</span>
+              )}
+            </div>
+            <FieldError id="des-date-err" message={show("arrivedAt")} />
+            {!show("arrivedAt") && (
+              <p className="hint" id="des-date-hint">
+                {form.dateEdited ? "Data e hora ajustadas manualmente." : "Preenchido com a hora atual. Toque para alterar, se precisar."}
+              </p>
             )}
           </div>
           <div className={fieldClass("quantity")}>
@@ -324,7 +361,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
             <table>
               <thead>
                 <tr>
-                  <th>Tipo</th><th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
+                  <th>Tipo</th><th>Desembarque</th><th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
                   <th>Raça</th><th>Categoria</th><th>Qualidade</th><th>Anexos</th><th>Lote</th>
                 </tr>
               </thead>
@@ -339,6 +376,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
                           ? <span className="kind-pill refugo" title={r.notes || undefined}>Refugo · {label(r.reason)}</span>
                           : <span className="kind-pill">Normal</span>}
                       </td>
+                      <td className="nowrap">{formatDateTime(r.arrivedAt ?? r.createdAt)}</td>
                       <td>{r.farm}</td>
                       <td>{r.quantity}</td>
                       <td>{label(r.sexType)}</td>
@@ -383,6 +421,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
               <div>
                 <span className="gd-kick">{isRefugo(openEntry) ? `Refugo · ${label(openEntry.reason)}` : "Gado normal"}</span>
                 <h3 id="gd-title">{openEntry.quantity} {label(categoryOf(openEntry.sexType, openEntry.ageMonths))} · {openEntry.farm}</h3>
+                <p className="gd-date">Desembarque em {formatDateTime(openEntry.arrivedAt ?? openEntry.createdAt)}</p>
                 {openEntry.notes && <p className="gd-notes">“{openEntry.notes}”</p>}
               </div>
               <button type="button" className="gd-x" onClick={() => setGallery(null)} aria-label="Fechar">✕</button>

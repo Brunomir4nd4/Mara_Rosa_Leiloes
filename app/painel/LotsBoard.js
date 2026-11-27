@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ageLabel, categoryOf, isRefugo, label, lotTitle, summarize } from "../../lib/catalog";
+import { REFUGO_SHORT, ageLabel, categoryOf, isRefugo, label, lotTitle, summarize } from "../../lib/catalog";
 import Select from "../_ui/Select";
 import NumberStepper from "../_ui/NumberStepper";
 import MediaGallery from "./MediaGallery";
+import { formatDateTime } from "../../lib/datetime";
 
 const pad = (n) => String(n).padStart(2, "0");
 const fmt = (n) => n.toLocaleString("pt-BR");
@@ -171,6 +172,7 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
                   <span className="ecard-box" aria-hidden="true" />
                   <span className="ecard-txt">
                     {entryLine(e)}
+                    <span className="ecard-date">Desembarque em {formatDateTime(e.arrivedAt ?? e.createdAt)}</span>
                     {isRefugo(e) && (
                       <span className="ecard-ref">
                         {label(e.reason)}{e.media?.length ? ` · ${e.media.length} ${e.media.length === 1 ? "anexo" : "anexos"}` : " · sem anexos"}
@@ -226,6 +228,7 @@ function LinkedDetail({ record, entries, onAskUnlink, onEntryChange }) {
         {entries.map((e) => (
           <li key={e.id} className={isRefugo(e) ? "refugo" : ""}>
             <span className="ld-line">{entryLine(e)}</span>
+            <span className="ld-date">Desembarque em {formatDateTime(e.arrivedAt ?? e.createdAt)}</span>
             {isRefugo(e) && (
               <>
                 <span className="ld-ref">{label(e.reason)}</span>
@@ -527,12 +530,17 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
                       <span className="lt-head">
                         <span className="lt-label">Lote</span>
                         <span className="lt-no">{pad(n)}</span>
-                        {rec && <span className="lt-tag">{lotIsRefugo(rec) ? "REFUGO" : SEX_TAG[s.sex]}</span>}
+                        {rec && <span className="lt-tag">{SEX_TAG[s.sex]}</span>}
                         {fresh.has(n) && <span className="lt-new">Novo</span>}
                       </span>
                       <span className="lt-body">
                         {rec ? (
                           <>
+                            {lotIsRefugo(rec) && (
+                              <span className="lt-ref" title={s.reasons.map(label).join(", ")}>
+                                Refugo{s.reasons.length === 1 ? ` · ${REFUGO_SHORT[s.reasons[0]] ?? ""}` : s.reasons.length > 1 ? ` · ${s.reasons.length} motivos` : ""}
+                              </span>
+                            )}
                             <span className="lt-title">{lotTitle(s)}</span>
                             <span className="lt-farm" title={rec.farm}>{shortFarm(rec.farm)}</span>
                           </>
