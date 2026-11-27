@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { maskCpf, isValidCpf } from "../../lib/cpf";
 import { maskCnpj, isValidCnpj } from "../../lib/cnpj";
+import { postJson } from "../../lib/http";
 
 const EMPTY = { cpf: "", farmName: "", tradeName: "", ownerName: "", cnpj: "" };
 
@@ -10,12 +11,14 @@ export default function FarmForm({ records, onAdd }) {
   const [form, setForm] = useState(EMPTY);
   const [cpfError, setCpfError] = useState("");
   const [cnpjError, setCnpjError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!isValidCpf(form.cpf)) {
       setCpfError("CPF inválido. Confira os 11 números e tente de novo.");
@@ -28,9 +31,16 @@ export default function FarmForm({ records, onAdd }) {
       document.getElementById("farm-cnpj").focus();
       return;
     }
-    // TODO: enviar para a API (POST /api/farms) e gravar no MongoDB
-    onAdd({ id: Date.now(), ...form });
-    setForm(EMPTY);
+    setSaving(true);
+    setSaveError("");
+    try {
+      onAdd(await postJson("/api/farms", form));
+      setForm(EMPTY);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -64,12 +74,13 @@ export default function FarmForm({ records, onAdd }) {
             <div className="err" id="farm-cnpj-err" role="alert">{cnpjError}</div>
           </div>
         </div>
-        <button type="submit">Salvar fazenda</button>
+        <div className="err" role="alert">{saveError}</div>
+        <button type="submit" disabled={saving}>{saving ? "Salvando…" : "Salvar fazenda"}</button>
       </form>
 
       <h2>Fazendas registradas</h2>
       {records.length === 0 ? (
-        <p className="empty">Nenhuma fazenda registrada nesta sessão.</p>
+        <p className="empty">Nenhuma fazenda registrada.</p>
       ) : (
         <div className="tbl">
           <table>
