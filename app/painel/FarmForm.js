@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { maskCpf, isValidCpf } from "../../lib/cpf";
 import { maskCnpj, isValidCnpj } from "../../lib/cnpj";
+import { maskPhone, isValidPhone } from "../../lib/phone";
 
-const EMPTY = { cpf: "", farmName: "", tradeName: "", ownerName: "", cnpj: "" };
+const EMPTY = { cpf: "", farmName: "", tradeName: "", ownerName: "", phone: "", cnpj: "" };
 
 const FIELDS = [
   { key: "cpf", id: "farm-cpf", label: "CPF do titular" },
   { key: "ownerName", id: "farm-owner", label: "Nome do titular" },
+  { key: "phone", id: "farm-phone", label: "Telefone" },
   { key: "farmName", id: "farm-name", label: "Nome da fazenda" },
   { key: "cnpj", id: "farm-cnpj", label: "CNPJ" },
 ];
@@ -17,6 +19,7 @@ function validate(form, existing) {
   const errors = {
     cpf: !form.cpf ? "Informe o CPF do titular." : !isValidCpf(form.cpf) ? "CPF inválido. Confira os 11 números." : "",
     ownerName: form.ownerName.trim().length >= 3 ? "" : "Informe o nome completo do titular.",
+    phone: !form.phone ? "Informe o telefone de contato." : !isValidPhone(form.phone) ? "Telefone inválido. Use DDD + número, ex.: (62) 99999-9999." : "",
     farmName: !form.farmName.trim()
       ? "Informe o nome da fazenda."
       : existing.has(form.farmName.trim().toLowerCase()) ? "Já existe uma fazenda com esse nome." : "",
@@ -103,6 +106,13 @@ export default function FarmForm({ records, onAdd }) {
               value={form.ownerName} onChange={(e) => set("ownerName", e.target.value)} onBlur={() => touch("ownerName")} />
             <FieldError id="farm-owner-err" message={show("ownerName")} />
           </div>
+          <div className={fieldClass("phone")}>
+            <label htmlFor="farm-phone">Telefone / WhatsApp</label>
+            <input id="farm-phone" type="tel" inputMode="tel" autoComplete="off" placeholder="(00) 00000-0000" maxLength={15}
+              aria-invalid={show("phone") ? "true" : "false"} aria-describedby="farm-phone-err"
+              value={form.phone} onChange={(e) => set("phone", maskPhone(e.target.value))} onBlur={() => touch("phone")} />
+            <FieldError id="farm-phone-err" message={show("phone")} />
+          </div>
           <div className={fieldClass("farmName")}>
             <label htmlFor="farm-name">Nome da fazenda</label>
             <input id="farm-name" autoComplete="off" placeholder="Ex.: Fazenda Boa Vista" maxLength={120}
@@ -141,7 +151,7 @@ export default function FarmForm({ records, onAdd }) {
         <div className="tbl">
           <table>
             <thead>
-              <tr><th>Fazenda</th><th>Nome fantasia</th><th>Titular</th><th>CPF</th><th>CNPJ</th></tr>
+              <tr><th>Fazenda</th><th>Nome fantasia</th><th>Titular</th><th>Telefone</th><th>CPF</th><th>CNPJ</th></tr>
             </thead>
             <tbody>
               {records.map((r) => (
@@ -149,6 +159,7 @@ export default function FarmForm({ records, onAdd }) {
                   <td>{r.farmName}</td>
                   <td>{r.tradeName || "—"}</td>
                   <td>{r.ownerName}</td>
+                  <td>{r.phone || "—"}</td>
                   <td>{r.cpf}</td>
                   <td>{r.cnpj || "—"}</td>
                 </tr>

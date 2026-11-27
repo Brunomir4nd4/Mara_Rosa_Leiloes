@@ -1155,3 +1155,12 @@ a.ltab:focus-visible{outline:3px solid var(--w);outline-offset:2px}
 /* Relatório: campos das tabelas centralizados */
 .rp-table th,.rp-table td,.rp-table .n{text-align:center}
 .rp-table tfoot td:first-child{text-align:left}
+
+/* Ícones de + desenhados (centralizados de verdade) */
+.plus-ico{display:block;width:60%;height:60%;fill:currentColor}
+.dash .lb button.btn-add span{font-size:0;line-height:0}
+.dash .lb button.btn-add span .plus-ico{width:16px;height:16px}
+.dash .lb button.lt-addtile span{font-size:0;line-height:0}
+.dash .lb button.lt-addtile span .plus-ico{width:18px;height:18px}
+.lt-plus{font-size:0;line-height:0}
+.lt-plus .plus-ico{width:12px;height:12px}

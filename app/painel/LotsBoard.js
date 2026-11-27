@@ -14,6 +14,11 @@ const STATUS_TABS = [
 ];
 const shortFarm = (name) => name.replace(/^fazenda\s+/i, "");
 
+// Ícone de + desenhado (o caractere "+" fica torto dentro de círculos por causa da fonte)
+const PlusIcon = () => (
+  <svg className="plus-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v14h-2zM5 11h14v2H5z" /></svg>
+);
+
 function entryLine(e) {
   return `${fmt(Number(e.quantity))} ${label(categoryOf(e.sexType, e.ageMonths))} · ${label(e.breed)} · ${e.ageMonths} m${e.quality ? ` · ${label(e.quality)}` : ""}`;
 }
@@ -412,7 +417,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
               <p>{total} lotes · {linkedCount} vinculados · {freeCount} disponíveis</p>
             </div>
             <button type="button" className="btn-add" onClick={() => setCapOpen(true)}>
-              <span aria-hidden="true">+</span> Adicionar lotes
+              <span aria-hidden="true"><PlusIcon /></span> Adicionar lotes
             </button>
           </header>
 
@@ -469,7 +474,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
                           </>
                         ) : (
                           <>
-                            <span className="lt-plus" aria-hidden="true">+</span>
+                            <span className="lt-plus" aria-hidden="true"><PlusIcon /></span>
                             <span className="lt-free">Disponível</span>
                           </>
                         )}
@@ -481,7 +486,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
               {status !== "LINKED" && !query && total < max && (
                 <li style={{ "--i": Math.min(shown.length, 30) }}>
                   <button type="button" className="lt-addtile" onClick={() => setCapOpen(true)}>
-                    <span aria-hidden="true">+</span>
+                    <span aria-hidden="true"><PlusIcon /></span>
                     Adicionar lotes
                   </button>
                 </li>
