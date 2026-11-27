@@ -83,13 +83,16 @@ function RingConsole({ lot, summary, entryRows, rows, index, onSave, onNavigate,
           <LotPicker rows={rows} currentId={lot.id} onPick={onPick} />
           <button type="button" onClick={() => onNavigate(1)} disabled={index === rows.length - 1} aria-label="Próximo lote">›</button>
         </div>
-        <h3>{lotTitle(summary)}</h3>
+        <h3>{lotTitle(summary)}{lot.kind === "REFUGO" && <span className="rf-tag">Refugo</span>}</h3>
         <dl className="ring-data">
           <div className="full"><dt>Fazenda</dt><dd>{lot.farm}</dd></div>
           <div><dt>Qtd.</dt><dd>{fmt(q)}</dd></div>
           <div><dt>Idade</dt><dd>{summary.ageMin === summary.ageMax ? summary.ageMin : `${summary.ageMin}–${summary.ageMax}`} m</dd></div>
           <div className="full"><dt>Sexo / Tipo</dt><dd>{[...new Set(entryRows.map((e) => label(e.sexType)))].join(" + ")}</dd></div>
           <div className="full"><dt>Raça</dt><dd>{summary.breeds.map(label).join(" / ")}</dd></div>
+          {summary.refugo && (
+            <div className="full ref"><dt>Refugo · motivo</dt><dd>{summary.reasons.map(label).join(", ")}</dd></div>
+          )}
         </dl>
         <p className="ring-lock">Dados do desembarque · não editáveis aqui</p>
       </div>
@@ -324,7 +327,7 @@ export default function PistaBoard({ lots, entries, onSave, goToLotes }) {
                 <tr key={lot.id} className={lot.id === active.lot.id ? "cur" : ""} tabIndex={0}
                   onClick={() => go(lot.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(lot.id); } }}
                   aria-label={`Abrir lote ${lot.lot} na pista`}>
-                  <td className="c-lot">{pad(lot.lot)}</td>
+                  <td className="c-lot">{pad(lot.lot)}{lot.kind === "REFUGO" && <span className="rf-mini">R</span>}</td>
                   <td>{lot.farm}</td>
                   <td>{s.quantity}</td>
                   <td>{sexCol(lot)}</td>

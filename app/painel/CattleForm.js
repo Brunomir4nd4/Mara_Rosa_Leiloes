@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { BREEDS, LIMITS, QUALITIES, SEX_TYPES, categoryOf, isFemale, label } from "../../lib/catalog";
+import { useEffect, useRef, useState } from "react";
+import { BREEDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES, categoryOf, isFemale, isRefugo, label } from "../../lib/catalog";
 import Select from "../_ui/Select";
+import NumberStepper from "../_ui/NumberStepper";
+import MediaGallery, { ACCEPT_MEDIA, checkFile, uploadMedia } from "./MediaGallery";
 
-const EMPTY = { farm: "", quantity: "", sexType: "", ageMonths: "", breed: "", quality: "" };
+const EMPTY = { kind: "NORMAL", farm: "", quantity: "", sexType: "", ageMonths: "", breed: "", quality: "", reason: "", notes: "" };
 
 const FIELDS = [
   { key: "farm", id: "des-farm", label: "Fazenda" },
@@ -13,6 +15,8 @@ const FIELDS = [
   { key: "ageMonths", id: "des-age", label: "Idade" },
   { key: "breed", id: "des-breed", label: "Raça" },
   { key: "quality", id: "des-quality", label: "Qualidade" },
+  { key: "reason", id: "des-reason", label: "Motivo do refugo" },
+  { key: "notes", id: "des-notes", label: "Observações" },
 ];
 
 function intError(value, max, what) {
@@ -25,6 +29,7 @@ function intError(value, max, what) {
 }
 
 function validate(form) {
+  const refugo = form.kind === "REFUGO";
   const errors = {
     farm: form.farm ? "" : "Escolha a fazenda de origem do gado.",
     quantity: intError(form.quantity, LIMITS.quantity, "a quantidade de cabeças"),
@@ -32,6 +37,10 @@ function validate(form) {
     ageMonths: intError(form.ageMonths, LIMITS.ageMonths, "a idade em meses"),
     breed: form.breed ? "" : "Escolha a raça.",
     quality: form.quality ? "" : "Escolha a qualidade.",
+    reason: !refugo || form.reason ? "" : "Escolha o motivo do refugo.",
+    notes: !refugo ? ""
+      : form.reason === "OUTRO" && form.notes.trim().length < 3 ? "Descreva o problema."
+      : form.notes.length > 500 ? "Máximo de 500 caracteres." : "",
   };
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v));
 }
@@ -40,13 +49,27 @@ function FieldError({ id, message }) {
   return message ? <p className="ferr" id={id} role="alert">{message}</p> : null;
 }
 
-export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
+const KIND_TABS = [
+  { id: "ALL", label: "Todos" },
+  { id: "NORMAL", label: "Normal" },
+  { id: "REFUGO", label: "Refugo" },
+];
+
+export default function CattleForm({ records, farms = [], lots = [], onAdd, onEntryChange }) {
   const [form, setForm] = useState(EMPTY);
+  const [files, setFiles] = useState([]); // anexos escolhidos antes de salvar
+  const [fileError, setFileError] = useState("");
+  const [uploading, setUploading] = useState(null); // { done, total, progress }
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState("ALL");
+  const [gallery, setGallery] = useState(null); // id do registro com a galeria aberta
+  const fileInput = useRef(null);
+  const galleryRef = useRef(null);
 
+  const refugo = form.kind === "REFUGO";
   const errors = validate(form);
   const show = (key) => (submitted || touched[key]) && errors[key];
   const touch = (key) => setTouched((t) => ({ ...t, [key]: true }));
@@ -54,6 +77,27 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
     setForm((f) => ({ ...f, [key]: value }));
     setSubmitError("");
   };
+
+  // previews dos anexos escolhidos (liberados ao trocar a lista)
+  const [previews, setPreviews] = useState([]);
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
+
+  useEffect(() => {
+    const d = galleryRef.current;
+    if (gallery && d && !d.open) d.showModal();
+    if (!gallery && d?.open) d.close();
+  }, [gallery]);
+
+  function pickFiles(list) {
+    const arr = [...list];
+    const problems = arr.map(checkFile).filter(Boolean);
+    setFileError(problems.join(" "));
+    setFiles((f) => [...f, ...arr.filter((x) => !checkFile(x))].slice(0, 20));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -65,14 +109,25 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
     }
     setSaving(true);
     try {
-      await onAdd(form);
+      const payload = refugo ? form : { ...form, reason: "", notes: "" };
+      let entry = await onAdd(payload);
+      // anexos: enviados um por vez depois que o registro existe
+      if (refugo && files.length) {
+        for (const [i, f] of files.entries()) {
+          setUploading({ done: i, total: files.length, progress: 0 });
+          entry = await uploadMedia(entry.id, f, (p) => setUploading({ done: i, total: files.length, progress: p }));
+          onEntryChange(entry);
+        }
+      }
       setForm(EMPTY);
+      setFiles([]);
       setTouched({});
       setSubmitted(false);
     } catch (err) {
       setSubmitError(err.message);
     } finally {
       setSaving(false);
+      setUploading(null);
     }
   }
 
@@ -81,15 +136,19 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
   const errorCount = Object.keys(errors).length;
   const preview = form.sexType && !errors.ageMonths ? categoryOf(form.sexType, form.ageMonths) : null;
 
+  const visible = records.filter((r) => filter === "ALL" || (filter === "REFUGO") === isRefugo(r));
   const heads = records.reduce((s, r) => s + Number(r.quantity), 0);
   const females = records.filter((r) => isFemale(r.sexType)).reduce((s, r) => s + Number(r.quantity), 0);
+  const refugoHeads = records.filter(isRefugo).reduce((s, r) => s + Number(r.quantity), 0);
   const waiting = records.filter((r) => !lotByEntry.has(r.id)).reduce((s, r) => s + Number(r.quantity), 0);
+  const countKind = (k) => (k === "ALL" ? records.length : records.filter((r) => (k === "REFUGO") === isRefugo(r)).length);
+  const openEntry = gallery ? records.find((r) => r.id === gallery) : null;
 
-  const fieldClass = (key) => `fld${show(key) ? " has-err" : ""}`;
+  const fieldClass = (key, extra = "") => `fld${show(key) ? " has-err" : ""}${extra}`;
 
   return (
     <>
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit} noValidate className={refugo ? "is-refugo" : ""}>
         {submitted && errorCount > 0 && (
           <div className="vbox" role="alert">
             <span className="vbox-ico" aria-hidden="true">!</span>
@@ -108,8 +167,23 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
           </div>
         )}
 
+        {/* Tipo do gado: normal ou refugo */}
+        <fieldset className="kind-seg">
+          <legend>Tipo do gado</legend>
+          <div className="ks-opts" style={{ "--idx": refugo ? 1 : 0 }}>
+            <span className="ks-ind" aria-hidden="true" />
+            {["NORMAL", "REFUGO"].map((k) => (
+              <label key={k} className={form.kind === k ? "on" : ""}>
+                <input type="radio" name="des-kind" value={k} checked={form.kind === k} onChange={() => set("kind", k)} />
+                {k === "NORMAL" ? "Gado normal" : "Refugo (com problema)"}
+              </label>
+            ))}
+          </div>
+          {refugo && <p className="ks-hint">Animais com doença, lesão ou outro problema. Informe o motivo e anexe fotos ou vídeos para o proprietário.</p>}
+        </fieldset>
+
         <div className="grid">
-          <div className={`${fieldClass("farm")} wide`}>
+          <div className={fieldClass("farm", " wide")}>
             <label htmlFor="des-farm">Fazenda</label>
             <Select id="des-farm" value={form.farm} onChange={(v) => set("farm", v)} onBlur={() => touch("farm")}
               invalid={Boolean(show("farm"))} describedBy={show("farm") ? "des-farm-err" : "des-farm-hint"}
@@ -122,10 +196,8 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
           </div>
           <div className={fieldClass("quantity")}>
             <label htmlFor="des-qty">Quantidade (cabeças)</label>
-            <input id="des-qty" type="number" min="1" max={LIMITS.quantity} step="1" inputMode="numeric" placeholder="Ex.: 12"
-              aria-invalid={show("quantity") ? "true" : "false"} aria-describedby="des-qty-err"
-              onKeyDown={(e) => { if (["-", "+", "e", ",", "."].includes(e.key)) e.preventDefault(); }}
-              value={form.quantity} onChange={(e) => set("quantity", e.target.value)} onBlur={() => touch("quantity")} />
+            <NumberStepper id="des-qty" value={form.quantity} onChange={(v) => set("quantity", v)} onBlur={() => touch("quantity")}
+              min={1} max={LIMITS.quantity} placeholder="Ex.: 12" unit="cab." invalid={Boolean(show("quantity"))} describedBy="des-qty-err" />
             <FieldError id="des-qty-err" message={show("quantity")} />
           </div>
           <div className={fieldClass("sexType")}>
@@ -137,10 +209,8 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
           </div>
           <div className={fieldClass("ageMonths")}>
             <label htmlFor="des-age">Idade (meses)</label>
-            <input id="des-age" type="number" min="1" max={LIMITS.ageMonths} step="1" inputMode="numeric" placeholder="Ex.: 18"
-              aria-invalid={show("ageMonths") ? "true" : "false"} aria-describedby="des-age-err"
-              onKeyDown={(e) => { if (["-", "+", "e", ",", "."].includes(e.key)) e.preventDefault(); }}
-              value={form.ageMonths} onChange={(e) => set("ageMonths", e.target.value)} onBlur={() => touch("ageMonths")} />
+            <NumberStepper id="des-age" value={form.ageMonths} onChange={(v) => set("ageMonths", v)} onBlur={() => touch("ageMonths")}
+              min={1} max={LIMITS.ageMonths} placeholder="Ex.: 18" unit="meses" invalid={Boolean(show("ageMonths"))} describedBy="des-age-err" />
             <FieldError id="des-age-err" message={show("ageMonths")} />
           </div>
           <div className={fieldClass("breed")}>
@@ -159,25 +229,90 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
           </div>
           <div className="fld cat-preview" aria-live="polite">
             <span className="cp-label">Categoria</span>
-            {preview ? (
-              <span className="cp-val">{label(preview)}</span>
-            ) : (
-              <span className="cp-empty">Escolha o sexo e a idade</span>
-            )}
+            {preview ? <span className="cp-val">{label(preview)}</span> : <span className="cp-empty">Escolha o sexo e a idade</span>}
             <span className="cp-hint">Calculada automaticamente</span>
           </div>
+
+          {refugo && (
+            <div className="refugo-box wide">
+              <div className="rb-head">
+                <span className="rb-ico" aria-hidden="true">!</span>
+                <strong>Dados do refugo</strong>
+              </div>
+              <div className="grid">
+                <div className={fieldClass("reason")}>
+                  <label htmlFor="des-reason">Motivo do refugo</label>
+                  <Select id="des-reason" value={form.reason} onChange={(v) => set("reason", v)} onBlur={() => touch("reason")}
+                    invalid={Boolean(show("reason"))} describedBy="des-reason-err"
+                    options={REFUGO_REASONS.map((r) => ({ value: r, label: label(r) }))} />
+                  <FieldError id="des-reason-err" message={show("reason")} />
+                </div>
+                <div className={fieldClass("notes")}>
+                  <label htmlFor="des-notes">Observações {form.reason !== "OUTRO" && <span className="opt">(opcional)</span>}</label>
+                  <textarea id="des-notes" rows={3} maxLength={500} placeholder="Ex.: manca da pata traseira esquerda, em tratamento"
+                    aria-invalid={show("notes") ? "true" : "false"} aria-describedby="des-notes-err"
+                    value={form.notes} onChange={(e) => set("notes", e.target.value)} onBlur={() => touch("notes")} />
+                  <span className="count">{form.notes.length}/500</span>
+                  <FieldError id="des-notes-err" message={show("notes")} />
+                </div>
+                <div className="fld wide">
+                  <span className="lbl">Fotos e vídeos para o proprietário <span className="opt">(opcional)</span></span>
+                  <div className="pick-files"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); pickFiles(e.dataTransfer.files); }}>
+                    {files.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="pf-item">
+                        {f.type.startsWith("image/")
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={previews[i]} alt="" />
+                          : <video src={previews[i]} muted />}
+                        <span className="pf-name">{f.name}</span>
+                        <button type="button" className="pf-x" onClick={() => setFiles((l) => l.filter((_, j) => j !== i))} aria-label={`Remover ${f.name}`}>✕</button>
+                      </div>
+                    ))}
+                    <button type="button" className="pf-add" onClick={() => fileInput.current?.click()}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v14h-2zM5 11h14v2H5z" /></svg>
+                      <span>Adicionar fotos ou vídeos</span>
+                      <small>ou arraste aqui · JPG, PNG, MP4, MOV</small>
+                    </button>
+                    <input ref={fileInput} type="file" multiple accept={ACCEPT_MEDIA} hidden
+                      onChange={(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
+                  </div>
+                  {fileError && <p className="ferr" role="alert">{fileError}</p>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
+        {uploading && (
+          <div className="up-status" role="status">
+            Enviando anexo {uploading.done + 1} de {uploading.total}… {uploading.progress}%
+            <span className="up-bar"><span style={{ width: `${uploading.progress}%` }} /></span>
+          </div>
+        )}
         {submitError && (
           <div className="vbox" role="alert">
             <span className="vbox-ico" aria-hidden="true">!</span>
             <div><strong>Não foi possível salvar</strong><p>{submitError}</p></div>
           </div>
         )}
-        <button type="submit" disabled={saving}>{saving ? "Salvando…" : "Registrar desembarque"}</button>
+        <button type="submit" disabled={saving}>
+          {saving ? (uploading ? "Enviando anexos…" : "Salvando…") : refugo ? "Registrar refugo" : "Registrar desembarque"}
+        </button>
       </form>
 
-      <h2>Desembarques registrados</h2>
+      <div className="list-head">
+        <h2>Desembarques registrados</h2>
+        <div className="chips-row" role="group" aria-label="Filtrar por tipo">
+          {KIND_TABS.map((t) => (
+            <button key={t.id} type="button" className={`kchip${filter === t.id ? " on" : ""}${t.id === "REFUGO" ? " kc-refugo" : ""}`}
+              aria-pressed={filter === t.id} onClick={() => setFilter(t.id)}>
+              {t.label} <em>{countKind(t.id)}</em>
+            </button>
+          ))}
+        </div>
+      </div>
       {records.length === 0 ? (
         <div className="empty-card">
           <strong>Nenhum desembarque registrado ainda</strong>
@@ -189,15 +324,21 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
             <table>
               <thead>
                 <tr>
-                  <th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
-                  <th>Raça</th><th>Categoria</th><th>Qualidade</th><th>Lote</th>
+                  <th>Tipo</th><th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
+                  <th>Raça</th><th>Categoria</th><th>Qualidade</th><th>Anexos</th><th>Lote</th>
                 </tr>
               </thead>
               <tbody>
-                {records.map((r) => {
+                {visible.map((r) => {
                   const lot = lotByEntry.get(r.id);
+                  const n = r.media?.length ?? 0;
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={isRefugo(r) ? "row-refugo" : ""}>
+                      <td>
+                        {isRefugo(r)
+                          ? <span className="kind-pill refugo" title={r.notes || undefined}>Refugo · {label(r.reason)}</span>
+                          : <span className="kind-pill">Normal</span>}
+                      </td>
                       <td>{r.farm}</td>
                       <td>{r.quantity}</td>
                       <td>{label(r.sexType)}</td>
@@ -205,6 +346,14 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
                       <td>{label(r.breed)}</td>
                       <td>{label(categoryOf(r.sexType, r.ageMonths))}</td>
                       <td>{r.quality ? label(r.quality) : "—"}</td>
+                      <td>
+                        {isRefugo(r) || n ? (
+                          <button type="button" className="media-btn" onClick={() => setGallery(r.id)}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zm2 2v8l4-4 3 3 2-2 3 3V7zm9 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" /></svg>
+                            {n ? `${n} ${n === 1 ? "anexo" : "anexos"}` : "Anexar"}
+                          </button>
+                        ) : "—"}
+                      </td>
                       <td>
                         {lot ? <span className="lot-pill">Lote {String(lot).padStart(2, "0")}</span>
                           : <span className="lot-pill wait">Sem lote</span>}
@@ -220,10 +369,28 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd }) {
             <div><dt>Cabeças</dt><dd>{heads}</dd></div>
             <div><dt>Fêmeas</dt><dd>{females}</dd></div>
             <div><dt>Machos</dt><dd>{heads - females}</dd></div>
+            <div className="t-refugo"><dt>Cabeças de refugo</dt><dd>{refugoHeads}</dd></div>
             <div><dt>Cabeças sem lote</dt><dd>{waiting}</dd></div>
           </dl>
         </>
       )}
+
+      {/* Galeria do registro (fotos e vídeos para o proprietário) */}
+      <dialog ref={galleryRef} className="gdialog" onClose={() => setGallery(null)} aria-labelledby="gd-title">
+        {openEntry && (
+          <div className="gd-box">
+            <header className="gd-head">
+              <div>
+                <span className="gd-kick">{isRefugo(openEntry) ? `Refugo · ${label(openEntry.reason)}` : "Gado normal"}</span>
+                <h3 id="gd-title">{openEntry.quantity} {label(categoryOf(openEntry.sexType, openEntry.ageMonths))} · {openEntry.farm}</h3>
+                {openEntry.notes && <p className="gd-notes">“{openEntry.notes}”</p>}
+              </div>
+              <button type="button" className="gd-x" onClick={() => setGallery(null)} aria-label="Fechar">✕</button>
+            </header>
+            <MediaGallery entry={openEntry} onChange={onEntryChange} editable />
+          </div>
+        )}
+      </dialog>
     </>
   );
 }

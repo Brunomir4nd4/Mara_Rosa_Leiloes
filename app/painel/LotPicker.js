@@ -95,7 +95,7 @@ export default function LotPicker({ rows, currentId, onPick }) {
                 onPointerEnter={() => setActive(i)} onPointerDown={(e) => e.preventDefault()} onClick={() => pick(r)}>
                 <span className="lp-no">{pad(r.lot.lot)}</span>
                 <span className="lp-txt">
-                  <strong>{lotTitle(r.s)}</strong>
+                  <strong>{lotTitle(r.s)}{r.lot.kind === "REFUGO" && <span className="rf-tag">Refugo</span>}</strong>
                   <span>{r.lot.farm}</span>
                 </span>
                 <span className={`st st-${r.status.toLowerCase()}`}>{STATUS_INFO[r.status].short}</span>

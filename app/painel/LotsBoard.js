@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ageLabel, categoryOf, label, lotTitle, summarize } from "../../lib/catalog";
+import { ageLabel, categoryOf, isRefugo, label, lotTitle, summarize } from "../../lib/catalog";
 import Select from "../_ui/Select";
+import NumberStepper from "../_ui/NumberStepper";
+import MediaGallery from "./MediaGallery";
 
 const pad = (n) => String(n).padStart(2, "0");
 const fmt = (n) => n.toLocaleString("pt-BR");
@@ -11,8 +13,10 @@ const STATUS_TABS = [
   { id: "ALL", label: "Todos" },
   { id: "FREE", label: "Disponíveis" },
   { id: "LINKED", label: "Vinculados" },
+  { id: "REFUGO", label: "Refugo" },
 ];
 const shortFarm = (name) => name.replace(/^fazenda\s+/i, "");
+const lotIsRefugo = (rec) => rec?.kind === "REFUGO";
 
 // Ícone de + desenhado (o caractere "+" fica torto dentro de círculos por causa da fonte)
 const PlusIcon = () => (
@@ -35,20 +39,33 @@ function useDialog(open) {
 
 /* ---------- Vincular um lote disponível ---------- */
 function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
+  // gado sem lote separado por tipo (lote de refugo só recebe refugo)
+  const byKind = (kind) => {
+    const m = new Map();
+    for (const [farm, list] of available) {
+      const l = list.filter((e) => (kind === "REFUGO") === isRefugo(e));
+      if (l.length) m.set(farm, l);
+    }
+    return m;
+  };
+  const normal = byKind("NORMAL");
+  const refugo = byKind("REFUGO");
+
+  const [kind, setKind] = useState(normal.size || !refugo.size ? "NORMAL" : "REFUGO");
   const [farm, setFarm] = useState("");
   const [picked, setPicked] = useState(new Set());
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const pool = kind === "REFUGO" ? refugo : normal;
   const farmOptions = farms.map((f) => {
-    const n = (available.get(f.farmName) ?? []).length;
+    const n = (pool.get(f.farmName) ?? []).length;
     return { value: f.farmName, label: f.farmName, hint: n ? `${n} sem lote` : "sem gado", disabled: !n };
   });
-  const anyAvailable = farmOptions.some((o) => !o.disabled);
 
   // Nada para vincular: mostra só o aviso com o atalho para o desembarque
-  if (!anyAvailable) {
+  if (!normal.size && !refugo.size) {
     return (
       <div className="lk-none">
         <span className="lk-none-ico" aria-hidden="true">
@@ -61,11 +78,19 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
     );
   }
 
-  const farmEntries = farm ? available.get(farm) ?? [] : [];
+  const farmEntries = farm ? pool.get(farm) ?? [] : [];
+
+  function chooseKind(k) {
+    setKind(k);
+    setFarm("");
+    setPicked(new Set());
+    setSubmitted(false);
+    setServerError("");
+  }
 
   function chooseFarm(name) {
     setFarm(name);
-    setPicked(new Set((available.get(name) ?? []).map((e) => e.id))); // já marca todos
+    setPicked(new Set((pool.get(name) ?? []).map((e) => e.id))); // já marca todos
     setServerError("");
   }
 
@@ -101,21 +126,37 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
   }
 
   return (
-    <form className="lk" onSubmit={submit} noValidate>
+    <form className={`lk${kind === "REFUGO" ? " is-refugo" : ""}`} onSubmit={submit} noValidate>
       <div className="lk-step">
         <span className="lk-n">1</span>
+        <fieldset className="lk-kind">
+          <legend>Tipo do lote</legend>
+          <div className="lk-kind-opts">
+            {[["NORMAL", "Lote normal", normal], ["REFUGO", "Lote de refugo", refugo]].map(([k, text, m]) => (
+              <label key={k} className={`${kind === k ? "on" : ""}${k === "REFUGO" ? " k-refugo" : ""}${m.size ? "" : " off"}`}>
+                <input type="radio" name="lk-kind" checked={kind === k} disabled={!m.size} onChange={() => chooseKind(k)} />
+                <span>{text}</span>
+                <em>{m.size ? (() => { const n = [...m.values()].flat().length; return `${n} ${n === 1 ? "registro" : "registros"} sem lote`; })() : "nenhum registro"}</em>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
+      <div className="lk-step">
+        <span className="lk-n">2</span>
         <div className={`fld${submitted && errors.farm ? " has-err" : ""}`}>
           <label htmlFor="lk-farm">Fazenda</label>
-          <Select id="lk-farm" value={farm} onChange={chooseFarm} options={farmOptions} placeholder="Selecione…"
+          <Select key={kind} id="lk-farm" value={farm} onChange={chooseFarm} options={farmOptions} placeholder="Selecione…"
             invalid={Boolean(submitted && errors.farm)} describedBy="lk-farm-err" />
           {submitted && errors.farm && <p className="ferr" id="lk-farm-err" role="alert">{errors.farm}</p>}
         </div>
       </div>
 
       <div className={`lk-step${farm ? "" : " off"}`}>
-        <span className="lk-n">2</span>
+        <span className="lk-n">3</span>
         <fieldset className={`lk-entries${submitted && errors.entries ? " has-err" : ""}`} disabled={!farm} aria-describedby="lk-entries-err">
-          <legend>Gado do desembarque</legend>
+          <legend>{kind === "REFUGO" ? "Refugo do desembarque" : "Gado do desembarque"}</legend>
           {!farm ? (
             <p className="lk-wait">Escolha a fazenda para ver o gado sem lote.</p>
           ) : (
@@ -125,10 +166,17 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
                 <button type="button" className="linkbtn" onClick={() => setPicked(new Set())}>Limpar</button>
               </div>
               {farmEntries.map((e) => (
-                <label key={e.id} className={`ecard${picked.has(e.id) ? " on" : ""}`}>
+                <label key={e.id} className={`ecard${picked.has(e.id) ? " on" : ""}${isRefugo(e) ? " refugo" : ""}`}>
                   <input type="checkbox" checked={picked.has(e.id)} onChange={() => toggle(e.id)} />
                   <span className="ecard-box" aria-hidden="true" />
-                  <span className="ecard-txt">{entryLine(e)}</span>
+                  <span className="ecard-txt">
+                    {entryLine(e)}
+                    {isRefugo(e) && (
+                      <span className="ecard-ref">
+                        {label(e.reason)}{e.media?.length ? ` · ${e.media.length} ${e.media.length === 1 ? "anexo" : "anexos"}` : " · sem anexos"}
+                      </span>
+                    )}
+                  </span>
                 </label>
               ))}
               {submitted && errors.entries && <p className="ferr" id="lk-entries-err" role="alert">{errors.entries}</p>}
@@ -140,8 +188,9 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
       {preview && (
         <div className="lk-preview" aria-live="polite">
           <span className="lk-pv-label">Como o lote {pad(lot)} vai aparecer</span>
-          <strong>{lotTitle(preview)}</strong>
+          <strong>{lotTitle(preview)}{kind === "REFUGO" && <span className="rf-tag">Refugo</span>}</strong>
           <span>{preview.categories.map(label).join(" · ")} — {ageLabel(preview.ageMin, preview.ageMax)}</span>
+          {kind === "REFUGO" && preview.reasons.length > 0 && <span className="lk-pv-ref">Motivos: {preview.reasons.map(label).join(", ")}</span>}
         </div>
       )}
 
@@ -153,19 +202,20 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
       )}
 
       <button type="submit" className="lk-submit" disabled={saving}>
-        {saving ? "Vinculando…" : `Vincular ao lote ${pad(lot)}`}
+        {saving ? "Vinculando…" : `Vincular ${kind === "REFUGO" ? "refugo " : ""}ao lote ${pad(lot)}`}
       </button>
     </form>
   );
 }
 
-/* ---------- Lote vinculado ---------- */
-function LinkedDetail({ record, entries, onAskUnlink }) {
+/* ---------- Lote vinculado (com dados do desembarque e anexos) ---------- */
+function LinkedDetail({ record, entries, onAskUnlink, onEntryChange }) {
   const s = summarize(entries);
+  const refugo = lotIsRefugo(record);
   return (
     <div className="ld">
       <p className="ld-farm">{record.farm}</p>
-      <h3>{lotTitle(s)}</h3>
+      <h3>{lotTitle(s)}{refugo && <span className="rf-tag">Refugo</span>}</h3>
       <dl className="ld-stats">
         <div><dt>Machos</dt><dd>{fmt(s.males)}</dd></div>
         <div><dt>Fêmeas</dt><dd>{fmt(s.females)}</dd></div>
@@ -173,7 +223,20 @@ function LinkedDetail({ record, entries, onAskUnlink }) {
       </dl>
       <h4>Composição (desembarque)</h4>
       <ul className="ld-list">
-        {entries.map((e) => <li key={e.id}>{entryLine(e)}</li>)}
+        {entries.map((e) => (
+          <li key={e.id} className={isRefugo(e) ? "refugo" : ""}>
+            <span className="ld-line">{entryLine(e)}</span>
+            {isRefugo(e) && (
+              <>
+                <span className="ld-ref">{label(e.reason)}</span>
+                {e.notes && <span className="ld-notes">“{e.notes}”</span>}
+              </>
+            )}
+            {(isRefugo(e) || e.media?.length > 0) && (
+              <MediaGallery entry={e} onChange={onEntryChange} editable compact />
+            )}
+          </li>
+        ))}
       </ul>
       <button type="button" className="danger" onClick={onAskUnlink}>Desvincular lote</button>
     </div>
@@ -252,10 +315,9 @@ function CapacityDialog({ open, onClose, total, max, trailingFree, onChange }) {
             <div className={`fld${submitted && error ? " has-err" : ""}`}>
               <label htmlFor="cap-n">{mode === "add" ? "Quantos lotes adicionar?" : "Quantos lotes remover do final?"}</label>
               <div className="cap-row">
-                <input id="cap-n" type="number" min="1" max={limit} step="1" inputMode="numeric" value={value}
-                  aria-invalid={submitted && error ? "true" : "false"} aria-describedby="cap-err"
-                  onKeyDown={(e) => { if (["-", "+", "e", ",", "."].includes(e.key)) e.preventDefault(); }}
-                  onChange={(e) => { setValue(e.target.value); setServerError(""); }} />
+                <NumberStepper id="cap-n" value={value} min={1} max={Math.max(1, limit)} unit="lotes"
+                  invalid={Boolean(submitted && error)} describedBy="cap-err"
+                  onChange={(v) => { setValue(v); setServerError(""); }} />
                 <div className="cap-chips">
                   {chips.filter((c) => c <= Math.max(limit, 1)).map((c) => (
                     <button key={c} type="button" className={Number(value) === c ? "on" : ""} onClick={() => setValue(String(c))}>
@@ -305,7 +367,7 @@ function CapacityDialog({ open, onClose, total, max, trailingFree, onChange }) {
 }
 
 /* ---------- Tela de lotes ---------- */
-export default function LotsBoard({ lots, entries, farms, total, max, onLink, onUnlink, onResize, goToDesembarque }) {
+export default function LotsBoard({ lots, entries, farms, total, max, onLink, onUnlink, onResize, onEntryChange, goToDesembarque }) {
   const [selected, setSelected] = useState(null);
   const [status, setStatus] = useState("ALL");
   const [query, setQuery] = useState("");
@@ -353,6 +415,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
     const rec = byNumber.get(n);
     if (status === "FREE" && rec) return false;
     if (status === "LINKED" && !rec) return false;
+    if (status === "REFUGO" && !lotIsRefugo(rec)) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     const num = q.replace(/^0+(?=\d)/, "");
@@ -394,7 +457,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
   const shown = numbers.filter(matches);
   const selRec = selected ? byNumber.get(selected) : null;
   const selSummary = selRec ? summaries.get(selRec.lot) : null;
-  const counts = { ALL: total, FREE: freeCount, LINKED: linkedCount };
+  const counts = { ALL: total, FREE: freeCount, LINKED: linkedCount, REFUGO: lots.filter(lotIsRefugo).length };
 
   return (
     <div className="lb">
@@ -440,6 +503,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
           <ul className="legend" aria-label="Legenda">
             <li><span className="sw sw-free" />Disponível</li>
             <li><span className="sw sw-linked" />Vinculado à fazenda</li>
+              <li><span className="sw sw-refugo" />Lote de refugo</li>
             <li className="legend-tags"><b>M</b> machos <b>F</b> fêmeas <b>M+F</b> misto</li>
           </ul>
 
@@ -457,13 +521,13 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
                 const on = selected === n;
                 return (
                   <li key={n} style={{ "--i": Math.min(i, 30) }}>
-                    <button type="button" className={`lt ${rec ? "is-linked" : "is-free"}${on ? " is-sel" : ""}${fresh.has(n) ? " is-new" : ""}`}
+                    <button type="button" className={`lt ${rec ? "is-linked" : "is-free"}${lotIsRefugo(rec) ? " is-refugo" : ""}${on ? " is-sel" : ""}${fresh.has(n) ? " is-new" : ""}`}
                       aria-pressed={on} onClick={() => select(n)}
                       aria-label={rec ? `Lote ${n}: vinculado à ${rec.farm}, ${lotTitle(s)}` : `Lote ${n}: disponível`}>
                       <span className="lt-head">
                         <span className="lt-label">Lote</span>
                         <span className="lt-no">{pad(n)}</span>
-                        {rec && <span className="lt-tag">{SEX_TAG[s.sex]}</span>}
+                        {rec && <span className="lt-tag">{lotIsRefugo(rec) ? "REFUGO" : SEX_TAG[s.sex]}</span>}
                         {fresh.has(n) && <span className="lt-new">Novo</span>}
                       </span>
                       <span className="lt-body">
@@ -483,7 +547,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
                   </li>
                 );
               })}
-              {status !== "LINKED" && !query && total < max && (
+              {(status === "ALL" || status === "FREE") && !query && total < max && (
                 <li style={{ "--i": Math.min(shown.length, 30) }}>
                   <button type="button" className="lt-addtile" onClick={() => setCapOpen(true)}>
                     <span aria-hidden="true"><PlusIcon /></span>
@@ -510,7 +574,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
                 <button type="button" className="dh-close" onClick={() => setSelected(null)} aria-label="Fechar detalhe">✕</button>
               </header>
               {selRec ? (
-                <LinkedDetail record={selRec} entries={entriesOf(selRec)} onAskUnlink={() => setConfirming(true)} />
+                <LinkedDetail record={selRec} entries={entriesOf(selRec)} onAskUnlink={() => setConfirming(true)} onEntryChange={onEntryChange} />
               ) : (
                 <LinkForm key={selected} lot={selected} farms={farms} available={available}
                   onLink={onLink} goToDesembarque={goToDesembarque} />

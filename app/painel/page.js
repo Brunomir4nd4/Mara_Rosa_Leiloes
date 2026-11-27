@@ -19,6 +19,14 @@ const SECTIONS = [
 
 const pad = (n) => String(n).padStart(2, "0");
 
+// Ícones das abas (aparecem no menu lateral e na barra inferior do celular)
+const NAV_ICONS = {
+  farm: "M3 11 12 4l9 7v9h-6v-6H9v6H3z",
+  cattle: "M3 6h12v10H3zm12 4h4l2 3v3h-6zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+  lots: "M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z",
+  pista: "M12 2a7 7 0 0 1 7 7c0 4-3 6-4 9H9c-1-3-4-5-4-9a7 7 0 0 1 7-7zm-3 18h6v2H9z",
+};
+
 export default function PainelPage() {
   const router = useRouter();
   const [active, setActive] = useState("farm");
@@ -80,11 +88,15 @@ export default function PainelPage() {
   async function addEntry(data) {
     const entry = await post("/api/admin/entries", data);
     setEntries((l) => [...l, entry]);
-    push({
-      title: "Desembarque registrado",
-      message: `${entry.quantity} ${categoryLabel(categoryOf(entry.sexType, entry.ageMonths), entry.quantity).toLowerCase()} · ${entry.farm}. Vincule na aba Lotes.`,
-    });
+    const what = `${entry.quantity} ${categoryLabel(categoryOf(entry.sexType, entry.ageMonths), entry.quantity).toLowerCase()} · ${entry.farm}`;
+    push(entry.kind === "REFUGO"
+      ? { type: "info", title: "Refugo registrado", message: `${what}. Vincule em um lote de refugo na aba Lotes.` }
+      : { title: "Desembarque registrado", message: `${what}. Vincule na aba Lotes.` });
+    return entry;
   }
+
+  // registro atualizado (ex.: anexos de foto/vídeo adicionados ou removidos)
+  const updateEntry = (entry) => setEntries((l) => l.map((x) => (x.id === entry.id ? entry : x)));
 
   async function linkLot(data) {
     try {
@@ -160,7 +172,8 @@ export default function PainelPage() {
               aria-current={s.id === active ? "page" : undefined}
               onClick={() => setActive(s.id)}
             >
-              {s.label}
+              <svg className="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={NAV_ICONS[s.id]} /></svg>
+              <span>{s.label}</span>
             </button>
           ))}
         </nav>
@@ -180,10 +193,10 @@ export default function PainelPage() {
         ) : (
           <>
             {active === "farm" && <FarmForm records={farms} onAdd={addFarm} />}
-            {active === "cattle" && <CattleForm records={entries} farms={farms} lots={lots} onAdd={addEntry} />}
+            {active === "cattle" && <CattleForm records={entries} farms={farms} lots={lots} onAdd={addEntry} onEntryChange={updateEntry} />}
             {active === "lots" && (
               <LotsBoard lots={lots} entries={entries} farms={farms} total={capacity.total} max={capacity.max}
-                onLink={linkLot} onUnlink={unlinkLot} onResize={resizeLots}
+                onLink={linkLot} onUnlink={unlinkLot} onResize={resizeLots} onEntryChange={updateEntry}
                 goToDesembarque={() => setActive("cattle")} />
             )}
             {active === "pista" && (

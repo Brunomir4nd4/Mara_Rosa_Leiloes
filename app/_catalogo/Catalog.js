@@ -65,6 +65,7 @@ function LotCard({ lot, index, onOpen }) {
             </div>
           )}
           <span className="lotno" aria-hidden="true"><small>Lote</small>{lotNo(lot.lot)}</span>
+          {lot.refugo && <span className="rf-badge">Refugo</span>}
           {res && <span className="res">{res}</span>}
         </div>
         <div className="info">
@@ -116,6 +117,7 @@ function Player({ lot, onClose }) {
           <div className="player-info">
             <p className="kicker">Lote {lotNo(lot.lot)}</p>
             <h2 id="player-title">{lotTitle(lot)}</h2>
+            {lot.refugo && <p className="rf-note">Lote de refugo · {lot.reasons.map(label).join(", ")}</p>}
             <div className="tags">
               <QualityBadges qualities={lot.qualities} />
               {res && <span className="res inline">{res}</span>}
