@@ -4,7 +4,7 @@ import "./globals.css";
 const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
 const condensed = Barlow_Condensed({ subsets: ["latin"], weight: ["700", "800"], variable: "--font-display" });
 
-export const metadata = { title: "Mara Rosa Leilão – Entrar" };
+export const metadata = { title: "Mara Rosa Leilão", description: "Catálogo de lotes de gado da Mara Rosa Leilões." };
 
 export default function RootLayout({ children }) {
   return (
