@@ -293,7 +293,7 @@ export default function PainelPage() {
   const updateLot = (lot) => setLots((l) => l.map((x) => (x.id === lot.id ? lot : x)));
 
   return (
-    <div className="dash" data-theme={theme.effective} data-accent={theme.accent}>
+    <div className="dash">
       <aside className="side">
         <BrandLogo className="dlogo" />
         <nav aria-label="Navegação do painel">

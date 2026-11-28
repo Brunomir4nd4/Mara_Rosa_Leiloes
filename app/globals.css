@@ -1663,7 +1663,7 @@ a.ltab:focus-visible{outline:3px solid var(--w);outline-offset:2px}
 /* o menu fica acima do conteúdo (o painel de tema não abre mais por trás da página) */
 .dash .side{z-index:20}
 .dash .side{background:var(--side-bg) repeating-linear-gradient(115deg,transparent 0 38px,rgba(var(--y-rgb),.05) 38px 40px);color:var(--w);border-right-color:var(--y)}
-.dash{--side-bg:#000;--nav-bg:rgba(12,12,12,.96);--pop-bg:#1b1b1b}
+:root{--side-bg:#000;--nav-bg:rgba(12,12,12,.96);--pop-bg:#1b1b1b}
 [data-theme="light"]{--side-bg:#fbfaf6;--nav-bg:rgba(255,255,255,.97);--pop-bg:#ffffff}
 [data-theme="light"] .side{border-right:1px solid var(--ln1);box-shadow:inset -3px 0 0 var(--y)}
 
@@ -2980,3 +2980,19 @@ html[data-theme="light"]{--pop-bg:#ffffff}
  .theme-fab.inline .theme-pop{width:min(280px,calc(100vw - 32px))}
 }
 @media (max-width:760px){.theme-fab.inline .theme-pop{width:min(256px,calc(100vw - 32px))}}
+
+/* selos sobre o vídeo: texto sempre branco (no tema claro o texto padrão é escuro e sumia no fundo escuro) */
+.res,.res.inline{color:#fff;border-color:rgba(255,255,255,.35);background:rgba(0,0,0,.7)}
+.cat .player .close{color:#fff}
+
+/* ===== Relatório de pista: documento de impressão com cores fixas (não segue o tema do painel) ===== */
+body:has(.rp),.rp{--y:#FEC200;--y-hi:#FFD23F;--y-rgb:254,194,0;--y-ink:#FEC200;--y-ink-light:#8f6b00;--k:#111111;--w:#ffffff;--mut:#b9b9b9;
+ --bg0:#0d0d0d;--s0:#111;--s1:#151515;--s2:#1b1b1b;--s3:#242424;--ln1:#2c2c2c;--ln2:#444;--txt2:#d6d6d6;--mut2:#808080;color-scheme:dark}
+html[data-theme] body:has(.rp){background:var(--k);color:var(--w)}
+
+/* qualidade "Bom" legível no tema claro (verde claro sumia no fundo claro) */
+[data-theme="light"] .q-bom{color:#1a7a3c;border-color:rgba(26,122,60,.5);background:rgba(26,122,60,.1)}
+[data-theme="light"] .q-regular{color:#4a4a4a;border-color:#c8c3b5;background:#f3f1ea}
+/* número do lote fica sobre faixa sempre escura: usa o amarelo vivo em qualquer tema */
+.lotno{color:var(--y)}
+.lotno small{color:#cfcfcf}

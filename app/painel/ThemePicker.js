@@ -16,16 +16,19 @@ const MODES = [
 ];
 
 // Preferência de tema salva neste navegador. Devolve { mode, accent, effective } e um setter.
-// global: aplica o tema no <html> (login e catálogo, que não têm o .dash)
-export function useTheme({ global = false } = {}) {
+// O tema fica no <html> (aplicado antes de pintar pelo script do layout) e vale para todas as telas.
+// Este hook lê a preferência salva e só grava no <html> depois de ler — nada de piscar ao trocar de tela.
+export function useTheme() {
   const [pref, setPref] = useState({ mode: "dark", accent: "yellow" });
   const [systemDark, setSystemDark] = useState(true);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "null");
       if (saved?.mode) setPref({ mode: saved.mode, accent: saved.accent || "yellow" });
     } catch {}
+    setLoaded(true);
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setSystemDark(mq.matches);
     const onChange = (e) => setSystemDark(e.matches);
@@ -43,14 +46,11 @@ export function useTheme({ global = false } = {}) {
 
   const effective = pref.mode === "auto" ? (systemDark ? "dark" : "light") : pref.mode;
   useEffect(() => {
-    if (!global) return;
+    if (!loaded) return; // ainda não leu o tema salvo: não sobrescreve o que o layout aplicou
     const el = document.documentElement;
-    el.dataset.theme = effective;
-    el.dataset.accent = pref.accent;
-  }, [global, effective, pref.accent]);
-  useEffect(() => () => {
-    if (global) { delete document.documentElement.dataset.theme; delete document.documentElement.dataset.accent; }
-  }, [global]);
+    if (el.dataset.theme !== effective) el.dataset.theme = effective;
+    if (el.dataset.accent !== pref.accent) el.dataset.accent = pref.accent;
+  }, [loaded, effective, pref.accent]);
   return { ...pref, effective, update };
 }
 
