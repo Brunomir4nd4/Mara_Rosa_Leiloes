@@ -176,7 +176,7 @@ function useCatalogEffects() {
 }
 
 export default function Catalog({ lots }) {
-  const showTop = useCatalogEffects();
+  useCatalogEffects();
   const [sex, setSex] = useState("ALL");
   const [filters, setFilters] = useState(NO_FILTERS);
   const [sort, setSort] = useState("lot");
@@ -233,20 +233,20 @@ export default function Catalog({ lots }) {
 
   return (
     <div className="cat">
-      <PageTheme />
-      <button type="button" className={`to-top${showTop ? " on" : ""}`} aria-label="Voltar ao topo" tabIndex={showTop ? 0 : -1}
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><Icon name="arrowLeft" /></button>
       <header className="cat-top">
         <a href="/catalogo" className="brand" aria-label="Mara Rosa Leilões – catálogo">
           <BrandLogo className="cb-logo" />
         </a>
         <div className="cat-hero">
+          <div className="cat-actions">
           <a href="/login" className="to-login">
             <span className="tl-ico" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z" /></svg>
             </span>
             <span className="tl-txt"><small>Voltar para</small>Login</span>
           </a>
+          <PageTheme placement="inline" />
+          </div>
           <p className="kicker">A vitrine do boi</p>
           <h1>Catálogo de lotes</h1>
           <p className="lead">Confira os lotes deste leilão: categoria, raça, idade e qualidade de cada um.</p>
@@ -322,6 +322,12 @@ export default function Catalog({ lots }) {
         <ul className="grid-lots" key={`${sex}|${JSON.stringify(filters)}|${sort}|${search}`}>
           {visible.map((l, i) => <LotCard key={l.id} lot={l} index={i} onOpen={setOpen} />)}
         </ul>
+      )}
+
+      {visible.length > 4 && (
+        <button type="button" className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <Icon name="arrowLeft" size={16} /> Voltar ao topo
+        </button>
       )}
 
       <footer className="cat-foot">Mara Rosa Leilões · A vitrine do boi</footer>

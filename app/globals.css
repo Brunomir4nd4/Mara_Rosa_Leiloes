@@ -2955,3 +2955,28 @@ html[data-theme="light"]{--pop-bg:#ffffff}
  .theme-fab{right:18px;bottom:18px}
  .cat button.to-top{right:18px;bottom:76px}
 }
+
+/* login: botão de tema no canto de cima (embaixo ele ficava sobre o botão Entrar no celular) */
+.theme-fab.top{top:20px;bottom:auto}
+.theme-fab.top .theme-pop{top:calc(100% + 10px);bottom:auto;transform-origin:top right}
+@media (max-width:760px){.theme-fab.top{top:14px;right:14px}}
+
+/* ===== Tema no fluxo da página (login e catálogo): nada flutuando sobre o conteúdo ===== */
+.theme-fab.inline{position:relative;top:auto;right:auto;bottom:auto;z-index:30}
+.theme-fab.inline .theme-btn{box-shadow:none;min-height:40px;height:40px;padding:0 14px}
+.theme-fab.inline .theme-pop{top:calc(100% + 10px);bottom:auto;right:0;left:auto;transform-origin:top right}
+.lbox-top{display:flex;justify-content:flex-end;margin:0 0 14px}
+.cat .cat-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+.cat .cat-actions .to-login{margin:0}
+.cat .cat-actions .theme-fab.inline .theme-btn{height:38px;min-height:38px}
+/* voltar ao topo: botão no fim da lista */
+.cat button.back-top{display:flex;align-items:center;justify-content:center;gap:8px;margin:28px auto 0;padding:10px 20px;border:1.5px solid var(--ln2);border-radius:999px;
+ background:var(--s2);color:var(--w);font:800 14px var(--font-display),sans-serif;letter-spacing:.08em;text-transform:uppercase;transition:all .2s}
+.cat button.back-top .ico{transform:rotate(90deg);color:var(--y-ink)}
+.cat button.back-top:hover{border-color:var(--y);color:var(--y-ink);transform:translateY(-2px)}
+@media (max-width:760px){
+ .theme-fab.inline .theme-btn{width:auto;height:40px;padding:0 14px;border-radius:999px}
+ .theme-fab.inline .theme-btn span{display:inline}
+ .theme-fab.inline .theme-pop{width:min(280px,calc(100vw - 32px))}
+}
+@media (max-width:760px){.theme-fab.inline .theme-pop{width:min(256px,calc(100vw - 32px))}}

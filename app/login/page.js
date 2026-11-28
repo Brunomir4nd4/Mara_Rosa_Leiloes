@@ -68,7 +68,6 @@ export default function LoginPage() {
 
   return (
     <main className="page">
-      <PageTheme />
       <div className="hero">
         <div className="stripe" aria-hidden="true" />
         <div className="gap" aria-hidden="true" />
@@ -78,6 +77,7 @@ export default function LoginPage() {
       </div>
       <section className="right">
         <div className="login-box">
+          <div className="lbox-top"><PageTheme placement="inline" /></div>
           <nav className="ltabs" aria-label="Escolha a área">
             <a href="/catalogo" className="ltab"><IconGrid /> Catálogo<span className="long">&nbsp;de lotes</span></a>
             <span className="ltab on" aria-current="page"><IconLock /> Painel</span>
