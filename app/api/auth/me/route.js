@@ -1,5 +1,5 @@
 import { json, requireUser } from "../../../../lib/api";
-import { maskCpf } from "../../../../lib/cpf";
+import { formatCpf } from "../../../../lib/cpf";
 import { ROLE_INFO } from "../../../../lib/roles";
 import { avatarUrl, getAvatar } from "../../../../lib/profiles";
 
@@ -13,7 +13,7 @@ export async function GET(request) {
   return json({
     id: user.id,
     name: user.name,
-    cpf: maskCpf(user.cpf),
+    cpf: formatCpf(user.cpf),
     role: user.role,
     roleLabel: ROLE_INFO[user.role].label,
     tabs: ROLE_INFO[user.role].tabs,

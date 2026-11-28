@@ -117,7 +117,7 @@ export default async function RelatorioPage() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.lot.id}>
-                    <td className="lot">{pad(r.lot.lot)}{r.lot.kind === "REFUGO" && <span className="rf-mini">R</span>}</td>
+                    <td className="lot">{pad(r.lot.lot)}</td>
                     <td>{r.lot.farm}</td>
                     <td className="n">{r.s.quantity}</td>
                     <td>{sexCol(r)}</td>

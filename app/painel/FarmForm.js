@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { maskCpf, isValidCpf } from "../../lib/cpf";
+import { formatCpf, isValidCpf } from "../../lib/cpf";
 import { maskCnpj, isValidCnpj } from "../../lib/cnpj";
 import { maskPhone, isValidPhone } from "../../lib/phone";
 import Select from "../_ui/Select";
@@ -97,7 +97,7 @@ export default function FarmForm({ records, criadores = [], onAdd, onCriadorChan
             <label htmlFor="farm-cpf">CPF do titular</label>
             <input id="farm-cpf" inputMode="numeric" placeholder="000.000.000-00" maxLength={14}
               aria-invalid={show("cpf") ? "true" : "false"} aria-describedby="farm-cpf-err"
-              value={form.cpf} onChange={(e) => set("cpf", maskCpf(e.target.value))} onBlur={() => touch("cpf")} />
+              value={form.cpf} onChange={(e) => set("cpf", formatCpf(e.target.value))} onBlur={() => touch("cpf")} />
             <FieldError id="farm-cpf-err" message={show("cpf")} />
           </div>
           <div className={fieldClass("ownerName")}>
@@ -155,29 +155,28 @@ export default function FarmForm({ records, criadores = [], onAdd, onCriadorChan
           <p>Cadastre a primeira fazenda para começar a registrar o desembarque.</p>
         </div>
       ) : (
-        <div className="tbl">
-          <table>
-            <thead>
-              <tr><th>Fazenda</th><th>Nome fantasia</th><th>Titular</th><th>Telefone</th><th>CPF</th><th>CNPJ</th><th>Criador</th></tr>
-            </thead>
-            <tbody>
-              {records.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.farmName}</td>
-                  <td>{r.tradeName || "—"}</td>
-                  <td>{r.ownerName}</td>
-                  <td>{r.phone || "—"}</td>
-                  <td>{r.cpf}</td>
-                  <td>{r.cnpj || "—"}</td>
-                  <td className="td-criador">
-                    <Select id={`farm-cr-${r.id}`} value={r.criadorId ?? ""} onChange={(v) => onCriadorChange?.(r, v || null)} ariaLabel={`Criador da ${r.farmName}`}
-                      options={[{ value: "", label: "Sem criador" }, ...criadores.map((c) => ({ value: c.id, label: c.name })),
-                        ...(r.criadorId && !criadores.some((c) => c.id === r.criadorId) ? [{ value: r.criadorId, label: `${r.criadorName ?? "Criador"} (inativo)`, disabled: true }] : [])]} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        // cartões com todos os dados (sem tabela para arrastar para o lado)
+        <div className="farm-cards">
+          {records.map((r) => (
+            <article key={r.id} className="farm-card">
+              <header>
+                <strong>{r.farmName}</strong>
+                {r.tradeName && <span>{r.tradeName}</span>}
+              </header>
+              <dl>
+                <div><dt>Titular</dt><dd>{r.ownerName}</dd></div>
+                <div><dt>Telefone</dt><dd>{r.phone || "—"}</dd></div>
+                <div><dt>CPF</dt><dd>{r.cpf}</dd></div>
+                <div><dt>CNPJ</dt><dd>{r.cnpj || "—"}</dd></div>
+              </dl>
+              <div className="farm-card-cr">
+                <span id={`farm-cr-l-${r.id}`}>Criador vinculado</span>
+                <Select id={`farm-cr-${r.id}`} value={r.criadorId ?? ""} onChange={(v) => onCriadorChange?.(r, v || null)} ariaLabel={`Criador da ${r.farmName}`}
+                  options={[{ value: "", label: "Sem criador" }, ...criadores.map((c) => ({ value: c.id, label: c.name })),
+                    ...(r.criadorId && !criadores.some((c) => c.id === r.criadorId) ? [{ value: r.criadorId, label: `${r.criadorName ?? "Criador"} (inativo)`, disabled: true }] : [])]} />
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </>

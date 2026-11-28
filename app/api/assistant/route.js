@@ -9,10 +9,21 @@ export const dynamic = "force-dynamic";
 const MAX_CHARS = 2000;
 
 // Limite simples por usuário (por instância do servidor): 30 perguntas por minuto
+const WINDOW_MS = 60_000;
 const hits = new Map();
+let lastPrune = 0;
+
+// tira do Map quem não pergunta há mais de 1 minuto (no máximo uma varredura por minuto)
+function prune(now) {
+  if (now - lastPrune < WINDOW_MS) return;
+  lastPrune = now;
+  for (const [id, list] of hits) if (!list.length || now - list[list.length - 1] >= WINDOW_MS) hits.delete(id);
+}
+
 function allow(id) {
   const now = Date.now();
-  const list = (hits.get(id) || []).filter((t) => now - t < 60_000);
+  prune(now);
+  const list = (hits.get(id) || []).filter((t) => now - t < WINDOW_MS);
   if (list.length >= 30) return false;
   list.push(now);
   hits.set(id, list);

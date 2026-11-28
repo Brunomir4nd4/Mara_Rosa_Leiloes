@@ -18,7 +18,8 @@ Para conferir a conexão com o banco: `GET /api/health`.
 Cada leiloeiro entra com CPF + senha. A senha nunca fica em texto puro: guardamos só o hash (scrypt).
 
 - A sessão fica registrada no banco (coleção `sessions`): **Sair** encerra de verdade, e tirar um CPF de `ADMIN_ACCOUNTS` corta o acesso na hora.
-- O limite de tentativas de login vale **por CPF** (8 a cada 15 min) e por IP, guardado no banco (`login_attempts`).
+- A sessão dura 8 horas sem uso: enquanto a pessoa usa o painel, ela é renovada sozinha. Trocar a própria senha encerra as outras sessões dela.
+- Limite de tentativas de login, guardado no banco (`login_attempts`): 8 falhas a cada 15 min bloqueiam o par **CPF + IP**. Muitas falhas no mesmo CPF (de qualquer lugar) ou no mesmo IP não bloqueiam — só deixam a resposta mais lenta (até alguns segundos), para ninguém travar a conta de outra pessoa nem o Wi-Fi do leilão. O IP só é confiável atrás da Vercel.
 
 ```bash
 npm run hash-senha   # pede CPF e senha e imprime a linha para o ADMIN_ACCOUNTS
@@ -38,8 +39,21 @@ Essas são as **contas do sistema** (função TI): garantem acesso mesmo com o b
 
 - A função é conferida no servidor a cada requisição: mudar a função ou desativar alguém vale na hora (desativar e trocar a senha de outra pessoa encerra as sessões dela).
 - Ninguém desativa o próprio usuário nem muda a própria função, e sempre fica pelo menos um TI ativo.
-- **Refugos são sigilosos**: nunca aparecem no catálogo. A equipe vincula cada refugo a um Criador (select na aba Refugos ou no Desembarque); cada Criador vê só os seus, e os anexos de outros ficam bloqueados para ele.
+- **Refugos são sigilosos**: nunca aparecem no catálogo. Cada refugo sai vinculado ao Criador cadastrado na fazenda (aba Fazenda; o Desembarque só mostra quem é), e a equipe pode trocar o Criador de um refugo pelo select do cartão na aba Refugos; cada Criador vê só os seus, e os anexos de outros ficam bloqueados para ele.
 - Os vídeos do catálogo são enviados por lote em **Admin → Vídeos do catálogo** (MP4/WEBM/MOV, até 1 GB, sem recompressão).
+
+### Chat interno
+
+Aba **Chat** para todos os usuários (inclusive Criador), no estilo WhatsApp e em tela cheia:
+- Grupo **Geral** com toda a equipe, **grupos** e conversas individuais com qualquer usuário ativo (nome e função aparecem nas mensagens).
+- **Grupos**: só TI e Administrativo criam e editam (nome, foto, adicionar/remover participantes). Qualquer participante pode sair. As mudanças aparecem como mensagens do sistema ("Ana criou o grupo…").
+- Texto, fotos (reduzidas no navegador para até 1920 px) e vídeos (até 100 MB; na Vercel cada envio aceita ~4,5 MB).
+- **Responder** (citação da mensagem; clicar leva até a original), **encaminhar** para até 5 conversas (marca "Encaminhada"), copiar e apagar a própria mensagem. Menu pela setinha, botão direito ou toque longo no celular.
+- **Status no padrão WhatsApp**: ✓ enviada, ✓✓ cinza entregue a todos, ✓✓ azul lida por todos. Em **Dados da mensagem** o autor vê quem leu e quem recebeu, com horário.
+- Online/offline e "visto por último", "digitando…", não lidas no menu, no título da aba e numa bolinha vermelha no ícone da aba (favicon).
+- **Notificações do navegador** (botão "Ativar notificações" no chat) e um som curto quando chega mensagem nova com o painel aberto em outra aba ou seção. Clicar na notificação abre a conversa. Exige HTTPS (ou localhost).
+- Conversas e seus arquivos são vistos só pelos participantes (`/api/chat/file` confere o acesso, inclusive em mensagens encaminhadas e na foto do grupo; a rota de mídia administrativa não entrega arquivos do chat).
+- Atualização por consulta periódica (lista a cada 6 s, conversa aberta a cada 2,5 s). Coleções: `chats`, `messages` (entrega/leitura por pessoa em `dlv`/`rd`), `chat_presence`.
 
 ### Assistente Mara Rosa Leilões
 

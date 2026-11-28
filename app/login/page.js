@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { maskCpf, isValidCpf } from "../../lib/cpf";
+import { formatCpf, isValidCpf } from "../../lib/cpf";
 import PageTheme from "../_ui/PageTheme";
 import LoginLogo from "./LoginLogo";
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
                   placeholder="000.000.000-00"
                   maxLength={14}
                   value={cpf}
-                  onChange={(e) => { setCpf(maskCpf(e.target.value)); setError(""); setDone(false); }}
+                  onChange={(e) => { setCpf(formatCpf(e.target.value)); setError(""); setDone(false); }}
                   aria-describedby="err"
                   aria-invalid={error ? "true" : "false"}
                 />

@@ -1,7 +1,8 @@
 import { fail, json, readJson, requireUser, serverError, text } from "../../../../../lib/api";
 import { destroyUserSessions } from "../../../../../lib/auth";
 import { OFFICE, canManageRole } from "../../../../../lib/roles";
-import { countActiveTI, getUser, updateUser } from "../../../../../lib/users";
+import { SESSION_COOKIE } from "../../../../../lib/session";
+import { countActiveTI, getUser, restoreUser, updateUser } from "../../../../../lib/users";
 import { nameError, passwordError, roleError } from "../validate";
 
 export const runtime = "nodejs";
@@ -54,14 +55,17 @@ export async function PATCH(request, { params }) {
     const losesTI = target.role === "TI" && target.active && (changes.active === false || (changes.role && changes.role !== "TI"));
     if (losesTI && (await countActiveTI(id)) < 1) return fail("É preciso manter pelo menos um usuário de TI ativo.", 409);
 
-    const { user } = await updateUser(id, changes);
+    const { user, before } = await updateUser(id, changes);
     // duas pessoas tirando o TI uma da outra ao mesmo tempo: confere de novo e desfaz se ficou sem TI
+    // (desfaz a alteração inteira — nome, senha etc. —, não só função e situação)
     if (losesTI && (await countActiveTI()) < 1) {
-      await updateUser(id, { role: target.role, active: target.active });
+      await restoreUser(before);
       return fail("É preciso manter pelo menos um usuário de TI ativo.", 409);
     }
-    // desativado ou senha trocada por outra pessoa: derruba as sessões abertas dele
+    // desativado ou senha trocada por outra pessoa: derruba todas as sessões abertas dele.
+    // Trocou a própria senha: derruba as outras sessões e mantém só esta.
     if (changes.active === false || (changes.password && !self)) await destroyUserSessions(target.cpf);
+    else if (changes.password && self) await destroyUserSessions(target.cpf, request.cookies.get(SESSION_COOKIE)?.value);
     return json(user);
   } catch (e) {
     if (e.status) return fail(e.message, e.status);

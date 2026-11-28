@@ -1,5 +1,5 @@
 import { addFarm, listFarms } from "../../../../lib/db";
-import { isValidCpf, maskCpf } from "../../../../lib/cpf";
+import { isValidCpf, formatCpf } from "../../../../lib/cpf";
 import { isValidCnpj, maskCnpj } from "../../../../lib/cnpj";
 import { isValidPhone, maskPhone } from "../../../../lib/phone";
 import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
@@ -43,7 +43,7 @@ export async function POST(request) {
   }
 
   const data = {
-    cpf: maskCpf(raw.cpf),
+    cpf: formatCpf(raw.cpf),
     ownerName: raw.ownerName,
     phone: maskPhone(raw.phone),
     farmName: raw.farmName,

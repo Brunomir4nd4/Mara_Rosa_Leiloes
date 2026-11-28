@@ -14,6 +14,8 @@ import TopBar, { UserMenu } from "./TopBar";
 import Kpis from "./Kpis";
 import Assistant from "./Assistant";
 import RefugosBoard from "./RefugosBoard";
+import ChatBoard from "./ChatBoard";
+import { OPEN_CHAT_EVENT, notifyNew } from "./chatNotify";
 import { Toasts, useToasts } from "./Toasts";
 import { categoryLabel, categoryOf, lotTitle, summarize } from "../../lib/catalog";
 import { STATUS_INFO, brl } from "../../lib/pista";
@@ -25,6 +27,7 @@ const SECTIONS = [
   { id: "pista", label: "Pista", title: "Pista", sub: "Durante o leilão: registre o resultado de cada lote. Os dados do desembarque já vêm preenchidos." },
   { id: "pickup", label: "Retirada", title: "Retirada", sub: "O comprador busca o gado arrematado. O saldo de cada lote vem do desembarque." },
   { id: "refugos", label: "Refugos", title: "Refugos", sub: "Animais com problema registrados no desembarque, com fotos e vídeos para o dono." },
+  { id: "chat", label: "Chat", title: "Chat", sub: "Converse com a equipe: grupo Geral e conversas individuais, com fotos e vídeos." },
   { id: "admin", label: "Admin", title: "Administração", sub: "Usuários do painel e suas funções, e os vídeos que aparecem no catálogo." },
 ];
 
@@ -38,6 +41,7 @@ const NAV_ICONS = {
   pista: "M12 2a7 7 0 0 1 7 7c0 4-3 6-4 9H9c-1-3-4-5-4-9a7 7 0 0 1 7-7zm-3 18h6v2H9z",
   pickup: "M3 5h11v10H3zm11 4h4l3 3v3h-7zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 8l2 2 4-4",
   refugos: "M12 3 2 20h20zm0 6v5m0 3v.01",
+  chat: "M4 4h16v12H8l-4 4zM8 9h8M8 12h5",
   admin: "M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zm0 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
 };
 
@@ -55,6 +59,9 @@ export default function PainelPage() {
   const [me, setMe] = useState(null); // usuário logado e abas que a função dele vê
   const [refugos, setRefugos] = useState([]);
   const [criadores, setCriadores] = useState([]);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [chatOpen, setChatOpen] = useState(null); // { id } conversa a abrir (clique na notificação)
+  const chatPrev = useRef(null);
   const sections = me ? SECTIONS.filter((s) => me.tabs.includes(s.id)) : [];
   const can = (tab) => Boolean(me?.tabs.includes(tab));
   const { toasts, push, dismiss } = useToasts();
@@ -268,6 +275,51 @@ export default function PainelPage() {
     setMe((m) => ({ ...m, avatar: url }));
     push(how === "saved" ? { title: "Foto atualizada", message: "Sua nova foto já aparece no painel." } : { type: "info", title: "Foto removida", message: "Voltamos a mostrar suas iniciais." });
   };
+  // Chat fora da aba Chat: conta as não lidas e avisa (notificação + som) das mensagens novas, a cada 10 s
+  useEffect(() => {
+    if (!me || active === "chat" || !me.tabs?.includes("chat")) return;
+    chatPrev.current = null;
+    const tick = () => api("/api/chat").then((d) => {
+      notifyNew(chatPrev.current, d.chats, d.me, { title: (c) => (c.id === "geral" ? "Geral · Mara Rosa Leilões" : c.name ?? "Chat") });
+      chatPrev.current = d.chats;
+      setChatUnread(d.chats.reduce((t, c) => t + c.unread, 0));
+    }).catch(() => {});
+    tick();
+    const t = setInterval(tick, 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, active]);
+
+  // clique numa notificação: abre a conversa no Chat
+  useEffect(() => {
+    const open = (e) => { setActive("chat"); setChatOpen({ id: e.detail, at: Date.now() }); };
+    window.addEventListener(OPEN_CHAT_EVENT, open);
+    return () => window.removeEventListener(OPEN_CHAT_EVENT, open);
+  }, []);
+
+  // mensagens novas: número no título da aba e bolinha vermelha no ícone (favicon)
+  useEffect(() => {
+    const base = "Mara Rosa Leilão – Painel";
+    document.title = chatUnread > 0 ? `(${chatUnread > 99 ? "99+" : chatUnread}) ${base}` : base;
+    const links = [...document.querySelectorAll("link[rel~=\"icon\"]")];
+    links.forEach((l) => { l.dataset.orig ??= l.href; });
+    if (!chatUnread) { links.forEach((l) => { l.href = l.dataset.orig; }); return; }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 64;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0, 64, 64);
+      g.beginPath(); g.arc(48, 16, 15, 0, Math.PI * 2); g.fillStyle = "#e53935"; g.fill();
+      g.lineWidth = 3; g.strokeStyle = "#fff"; g.stroke();
+      g.fillStyle = "#fff"; g.font = "bold 18px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(chatUnread > 9 ? "9+" : String(chatUnread), 48, 17);
+      const url = c.toDataURL("image/png");
+      links.forEach((l) => { l.href = url; });
+    };
+    img.src = "/logo.jpg";
+  }, [chatUnread]);
+
   // aba Refugos: recarrega ao abrir (anexos e vínculos podem ter mudado em outra aba)
   useEffect(() => {
     if (active === "farm" && me && me.role !== "CRIADOR") { api("/api/admin/criadores").then(setCriadores).catch(() => {}); return; }
@@ -307,6 +359,7 @@ export default function PainelPage() {
             >
               <svg className="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d={NAV_ICONS[s.id]} /></svg>
               <span className="nav-l">{s.label}</span>{s.short && <span className="nav-s">{s.short}</span>}
+              {s.id === "chat" && chatUnread > 0 && <em className="nav-badge">{chatUnread > 99 ? "99+" : chatUnread}</em>}
             </button>
           ))}
         </nav>
@@ -316,7 +369,7 @@ export default function PainelPage() {
       </aside>
       <div className="main-col">
       {me && <TopBar me={me} section={section} onLogout={logout} onAvatar={changeAvatar} />}
-      <main className={`content${["lots", "pista", "pickup", "refugos", "admin"].includes(active) ? " wide" : ""}`} key={active}>
+      <main className={`content${["lots", "pista", "pickup", "refugos", "chat", "admin"].includes(active) ? " wide" : ""}${active === "chat" ? " chat-tab" : ""}`} key={active}>
         <h1><span className="h1-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d={NAV_ICONS[section.id]} /></svg></span><span className="h1-t">{section.title}</span></h1>
         <p className="dsub">{section.sub}</p>
         {!loading && me && (active === "farm" || active === "cattle") && <Kpis tab={active} farms={farms} entries={entries} />}
@@ -344,6 +397,9 @@ export default function PainelPage() {
             {active === "refugos" && can("refugos") && (
               <RefugosBoard me={me} refugos={refugos} />
             )}
+            {active === "chat" && can("chat") && (
+              <ChatBoard me={me} api={api} push={push} onUnread={setChatUnread} openRequest={chatOpen} />
+            )}
             {active === "admin" && can("admin") && (
               <AdminBoard me={me} lots={lots} entries={entries} api={api} push={push} onLotChange={updateLot} />
             )}
@@ -355,7 +411,7 @@ export default function PainelPage() {
         )}
       </main>
       </div>
-      {me && <Assistant me={me} tab={active} />}
+      {me && active !== "chat" && <Assistant me={me} tab={active} />}
       <Toasts toasts={toasts} dismiss={dismiss} />
     </div>
   );

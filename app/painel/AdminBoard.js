@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initials } from "./AvatarEditor";
-import { isValidCpf, maskCpf } from "../../lib/cpf";
+import { isValidCpf, formatCpf } from "../../lib/cpf";
 import { ROLES, ROLE_INFO, canManageRole } from "../../lib/roles";
 import { lotTitle, resolutionLabel, summarize } from "../../lib/catalog";
 import Icon from "../_ui/Icon";
@@ -233,7 +233,7 @@ function UsersPanel({ me, api, push }) {
             <label htmlFor="usr-cpf">CPF <span className="opt">(usado para entrar)</span></label>
             <input id="usr-cpf" inputMode="numeric" autoComplete="off" maxLength={14} placeholder="000.000.000-00"
               aria-invalid={show("cpf") ? "true" : "false"} value={form.cpf}
-              onChange={(e) => set("cpf", maskCpf(e.target.value))} onBlur={() => touch("cpf")} />
+              onChange={(e) => set("cpf", formatCpf(e.target.value))} onBlur={() => touch("cpf")} />
             {show("cpf") && <p className="ferr" role="alert">{errors.cpf}</p>}
           </div>
           <div className="fld wide">

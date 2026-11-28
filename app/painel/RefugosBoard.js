@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Icon from "../_ui/Icon";
+import Select from "../_ui/Select";
 import MediaGallery from "./MediaGallery";
 import { CountUp } from "./Kpis";
 import { categoryLabel, categoryOf, label } from "../../lib/catalog";
@@ -9,13 +10,50 @@ import { categoryLabel, categoryOf, label } from "../../lib/catalog";
 const pad = (n) => String(n).padStart(2, "0");
 const fmtDate = (d) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—");
 
+// Troca o Criador dono de um refugo (null = sem criador). Devolve o registro atualizado.
+async function saveOwner(entryId, ownerId) {
+  const res = await fetch(`/api/admin/entries/${entryId}/owner`, {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Não foi possível trocar o criador. Tente de novo.");
+  return data;
+}
+
 // Refugos (gado com problema). Informação sigilosa:
 // - Criador: vê só os refugos vinculados a ele.
-// - Equipe (TI, Administrativo, Curral): vê todos e vincula cada um ao Criador pelo select.
-export default function RefugosBoard({ me, refugos }) {
+// - Equipe (TI, Administrativo, Curral): vê todos. O dono vem do Criador cadastrado na fazenda,
+//   e a equipe pode trocar o dono de cada refugo pelo select do cartão.
+export default function RefugosBoard({ me, refugos: fromProps }) {
   const isCriador = me.role === "CRIADOR";
   const [filter, setFilter] = useState("ALL");
   const [q, setQ] = useState("");
+  const [criadores, setCriadores] = useState([]);
+  const [owners, setOwners] = useState({}); // trocas feitas aqui: id do refugo → { ownerId, ownerName }
+  const [ownerErr, setOwnerErr] = useState({}); // id do refugo → mensagem de erro
+  const [saving, setSaving] = useState(null);
+
+  // lista de Criadores para o select (só a equipe tem acesso)
+  useEffect(() => {
+    if (isCriador) return;
+    fetch("/api/admin/criadores").then((r) => (r.ok ? r.json() : [])).then(setCriadores).catch(() => {});
+  }, [isCriador]);
+  // lista nova do servidor já traz as trocas: descarta as locais
+  useEffect(() => setOwners({}), [fromProps]);
+  const refugos = useMemo(() => fromProps.map((e) => (owners[e.id] ? { ...e, ...owners[e.id] } : e)), [fromProps, owners]);
+
+  async function changeOwner(e, ownerId) {
+    setSaving(e.id);
+    setOwnerErr((m) => ({ ...m, [e.id]: "" }));
+    try {
+      const updated = await saveOwner(e.id, ownerId);
+      setOwners((m) => ({ ...m, [e.id]: { ownerId: updated.ownerId ?? null, ownerName: updated.ownerName ?? null } }));
+    } catch (err) {
+      setOwnerErr((m) => ({ ...m, [e.id]: err.message }));
+    } finally {
+      setSaving(null);
+    }
+  }
 
   const heads = refugos.reduce((t, e) => t + (Number(e.quantity) || 0), 0);
   const withMedia = refugos.filter((e) => (e.media ?? []).length).length;
@@ -39,7 +77,7 @@ export default function RefugosBoard({ me, refugos }) {
         <Icon name="lock" size={16} />
         <span>{isCriador
           ? "Informação sigilosa: só você e a equipe do recinto veem estes refugos."
-          : "Informação sigilosa: refugos não aparecem no catálogo. Cada refugo é do criador cadastrado na fazenda, e cada criador vê apenas os seus."}</span>
+          : "Informação sigilosa: refugos não aparecem no catálogo. Cada refugo é do criador cadastrado na fazenda (dá para trocar no cartão), e cada criador vê apenas os seus."}</span>
       </div>
 
       <dl className="kpis">
@@ -93,13 +131,21 @@ export default function RefugosBoard({ me, refugos }) {
                 {e.notes && <p className="rf-notes"><b>Observações:</b> {e.notes}</p>}
                 <MediaGallery entry={e} compact />
                 {!isCriador && (
-                  <div className={`rf-owner${e.ownerId ? " on" : ""}`}>
+                  <div className={`rf-owner${e.ownerId ? " on" : ""}`} style={{ flexWrap: "wrap" }}>
                     <Icon name="lock" size={14} />
-                    {e.ownerId
-                      ? <span>Criador: <b>{e.ownerName}</b> <em>(do cadastro da fazenda)</em></span>
-                      : <span>Fazenda sem criador — defina na aba <b>Fazenda</b>.</span>}
+                    <span id={`rf-own-l-${e.id}`}>{e.ownerId
+                      ? <>Só <b>{e.ownerName}</b> (e a equipe) vê este refugo.</>
+                      : <>Sem criador — só a equipe vê este refugo.</>}</span>
+                    {/* no celular o select desce para a linha de baixo */}
+                    <div style={{ marginLeft: "auto", flex: "0 1 240px", minWidth: 200 }} aria-busy={saving === e.id}>
+                      <Select id={`rf-own-${e.id}`} value={e.ownerId ?? ""} ariaLabel={`Criador que pode ver o refugo de ${e.farm}`}
+                        onChange={(v) => { if (saving !== e.id && v !== (e.ownerId ?? "")) changeOwner(e, v || null); }}
+                        options={[{ value: "", label: "Sem criador" }, ...criadores.map((c) => ({ value: c.id, label: c.name })),
+                          ...(e.ownerId && !criadores.some((c) => c.id === e.ownerId) ? [{ value: e.ownerId, label: `${e.ownerName ?? "Criador"} (inativo)`, disabled: true }] : [])]} />
+                    </div>
                   </div>
                 )}
+                {!isCriador && ownerErr[e.id] && <p className="rf-notes" role="alert">{ownerErr[e.id]}</p>}
               </li>
             );
           })}
