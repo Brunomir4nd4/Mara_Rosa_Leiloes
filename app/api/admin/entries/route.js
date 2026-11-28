@@ -1,0 +1,79 @@
+import { addEntry, listEntries } from "../../../../lib/db";
+import { BREEDS, ENTRY_KINDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES } from "../../../../lib/catalog";
+import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
+import { arrivalError } from "../../../../lib/datetime";
+import { normalizeTransport, transportErrors } from "../../../../lib/transport";
+
+export const dynamic = "force-dynamic";
+
+// Registros do desembarque (gado que chegou de cada fazenda)
+export async function GET(request) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+  try {
+    return json(await listEntries());
+  } catch (e) {
+    return serverError(e);
+  }
+}
+
+const intIn = (v, max) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 && n <= max ? n : null;
+};
+
+export async function POST(request) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
+  const b = await readJson(request);
+  if (!b || typeof b !== "object" || Array.isArray(b)) return fail("Dados inválidos.", 400);
+  if (["farm", "notes", "arrivedAt", "driver", "truckModel", "plate"].some((k) => b[k] != null && typeof b[k] !== "string")) {
+    return fail("Dados inválidos: os campos devem ser texto.", 400);
+  }
+  const data = {
+    farm: (b.farm ?? "").trim(),
+    quantity: intIn(b?.quantity, LIMITS.quantity),
+    sexType: b?.sexType,
+    ageMonths: intIn(b?.ageMonths, LIMITS.ageMonths),
+    breed: b?.breed,
+    quality: b?.quality,
+    kind: ENTRY_KINDS.includes(b?.kind) ? b.kind : "NORMAL",
+    reason: null,
+    notes: "",
+    media: [],
+  };
+  // Refugo: motivo obrigatório, observação opcional (anexos são enviados depois, um por vez)
+  if (data.kind === "REFUGO") {
+    if (!REFUGO_REASONS.includes(b?.reason)) return fail("Informe o motivo do refugo.", 400);
+    data.reason = b.reason;
+    data.notes = (b.notes ?? "").trim();
+    if (data.reason === "OUTRO" && data.notes.length < 3) return fail("Descreva o problema em Observações.", 400);
+    if (data.notes.length > 500) return fail("Observações com no máximo 500 caracteres.", 400);
+    // o Criador (dono) vem do cadastro da fazenda — definido no addEntry
+  }
+  // data e hora do desembarque: se não vier, usa o momento do cadastro
+  const arrived = b?.arrivedAt ? new Date(b.arrivedAt) : new Date();
+  const dateError = arrivalError(arrived);
+  if (dateError) return fail(dateError, 400);
+  data.arrivedAt = arrived.toISOString();
+
+  // caminhão que trouxe o gado (fica só no desembarque, para consulta futura)
+  const tErr = Object.values(transportErrors(b))[0];
+  if (tErr) return fail(tErr, 400);
+  Object.assign(data, normalizeTransport(b));
+
+  if (!data.farm) return fail("Selecione a fazenda.", 400);
+  if (!data.quantity) return fail(`Quantidade deve ser um número inteiro entre 1 e ${LIMITS.quantity}.`, 400);
+  if (!data.ageMonths) return fail(`Idade deve ser um número inteiro entre 1 e ${LIMITS.ageMonths} meses.`, 400);
+  if (!SEX_TYPES.includes(data.sexType)) return fail("Sexo / tipo inválido.", 400);
+  if (!BREEDS.includes(data.breed)) return fail("Raça inválida.", 400);
+  if (!QUALITIES.includes(data.quality)) return fail("Qualidade inválida.", 400);
+
+  try {
+    return json(await addEntry(data), 201);
+  } catch (e) {
+    if (e.status) return fail(e.message, e.status);
+    return serverError(e);
+  }
+}
