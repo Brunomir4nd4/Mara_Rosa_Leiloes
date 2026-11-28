@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 // Logo que acompanha a cor de destaque do tema.
 // O arquivo /logo.jpg é desenho escuro sobre fundo amarelo. Geramos (uma vez, no navegador) uma máscara
@@ -33,19 +33,34 @@ function buildMask() {
   return maskPromise;
 }
 
+// A máscara pronta fica guardada no navegador: nas próximas visitas a logo aparece na hora.
+const CACHE_KEY = "mr-logo-mask-v1";
+function readCache() {
+  try { const v = localStorage.getItem(CACHE_KEY); return v?.startsWith("data:image/png") ? v : null; } catch { return null; }
+}
+function writeCache(v) {
+  try { localStorage.setItem(CACHE_KEY, v); } catch {} // sem espaço ou modo privado: só não guarda
+}
+
 // fx: camadas extras com a mesma máscara (ferro em brasa e brilho) para o efeito do login
 export default function BrandLogo({ className = "", fx = false }) {
   const [mask, setMask] = useState(null);
-  useEffect(() => {
+  const [failed, setFailed] = useState(false);
+  // useLayoutEffect: a máscara guardada no navegador entra antes da primeira pintura (sem piscar)
+  useLayoutEffect(() => {
     let alive = true;
-    buildMask().then((m) => alive && setMask(m)).catch(() => {});
+    const cached = readCache();
+    if (cached) { setMask(cached); return; }
+    buildMask().then((m) => { writeCache(m); if (alive) setMask(m); }).catch(() => alive && setFailed(true));
     return () => { alive = false; };
   }, []);
 
   if (!mask) {
-    // enquanto a máscara não fica pronta (ou se falhar), mostra o arquivo original
+    // se a máscara falhar, mostra o arquivo original (fundo amarelo)
     // eslint-disable-next-line @next/next/no-img-element
-    return <img className={className} src="/logo.jpg" alt="Mara Rosa Leilões – A vitrine do boi" width={886} height={861} />;
+    if (failed) return <img className={className} src="/logo.jpg" alt="Mara Rosa Leilões – A vitrine do boi" width={886} height={861} />;
+    // enquanto prepara: espaço vazio do mesmo tamanho (nada de bloco amarelo piscando)
+    return <span className={`${className} brand-logo`} role="img" aria-label="Mara Rosa Leilões – A vitrine do boi" />;
   }
   return (
     <span className={`${className} brand-logo`} role="img" aria-label="Mara Rosa Leilões – A vitrine do boi">

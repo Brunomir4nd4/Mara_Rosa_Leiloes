@@ -3391,3 +3391,16 @@ html.chat-full,html.chat-full body{overflow:hidden;overscroll-behavior:none}
 /* contador do Chat sempre verde, mesmo na aba ativa */
 .dash nav .nav-badge:not(#_){background:#25d366;color:#0b2e17;box-shadow:0 0 0 2px var(--s1)}
 @media (max-width:760px){[data-theme="light"] .dash .side:not(#_){border-right:0;box-shadow:none}}
+/* assistente: some enquanto a página rola ou um campo está em uso; espaço no fim da página para o botão */
+.as .as-fab{transition:transform .25s var(--ease),opacity .25s}
+.as.away:not(.open) .as-fab{transform:translateY(16px) scale(.6);opacity:0;pointer-events:none}
+.dash .content:not(.chat-tab){padding-bottom:calc(40px + 90px)}
+@media (max-width:760px){.dash .content:not(.chat-tab){padding-bottom:calc(96px + 76px + env(safe-area-inset-bottom,0px))}}
+/* assistente em tela cheia no celular (por cima das abas, até o fim da tela) */
+@media (max-width:760px){
+ .as .as-panel:not(#_){position:fixed;inset:0;width:100%;height:100dvh;max-height:none;border:0;border-radius:0;z-index:200;transform-origin:bottom center}
+ .as.open::before{display:none}
+ .as-panel .as-foot{margin-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+ .as-panel>header,.as-panel .as-head{padding-top:calc(12px + env(safe-area-inset-top,0px))}
+}
+html.as-full,html.as-full body{overflow:hidden}

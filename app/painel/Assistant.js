@@ -114,11 +114,40 @@ export default function Assistant({ me, tab }) {
     list.current.scrollTo({ top: messages.length ? list.current.scrollHeight : 0, behavior: messages.length ? "smooth" : "auto" });
   }, [messages, open]);
   useEffect(() => { if (open) setTimeout(() => field.current?.focus(), 250); }, [open]);
+  // celular: com o assistente aberto em tela cheia, a página de trás não rola
+  useEffect(() => {
+    const full = open && window.matchMedia("(max-width:760px)").matches;
+    document.documentElement.classList.toggle("as-full", full);
+    return () => document.documentElement.classList.remove("as-full");
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  // Botão flutuante sai do caminho: some enquanto a página rola e enquanto um campo do painel está em uso
+  // (volta logo depois). Assim não fica por cima de selects e campos.
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    if (open) { setAway(false); return; }
+    let t;
+    const busyField = () => {
+      const el = document.activeElement;
+      return Boolean(el && !el.closest(".as") && el.matches("input, textarea, select, [aria-haspopup], [aria-expanded='true']"));
+    };
+    const onScroll = () => { setAway(true); clearTimeout(t); t = setTimeout(() => setAway(busyField()), 900); };
+    const onFocus = () => { clearTimeout(t); t = setTimeout(() => setAway(busyField()), 50); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("focusin", onFocus);
+    document.addEventListener("focusout", onFocus);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("focusin", onFocus);
+      document.removeEventListener("focusout", onFocus);
+    };
   }, [open]);
 
   async function ask(text) {
@@ -178,7 +207,7 @@ export default function Assistant({ me, tab }) {
   const status = busy ? "Pensando…" : "Assistente inteligente · online";
 
   return (
-    <div className={`as${open ? " open" : ""}`}>
+    <div className={`as${open ? " open" : ""}${away ? " away" : ""}`}>
       <button type="button" className="as-fab" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="as-panel"
         aria-label={open ? "Fechar assistente" : "Abrir assistente Mara Rosa Leilões"}>
         <span className="as-fab-ring" aria-hidden="true" />

@@ -24,7 +24,7 @@ async function saveOwner(entryId, ownerId) {
 // - Criador: vê só os refugos vinculados a ele.
 // - Equipe (TI, Administrativo, Curral): vê todos. O dono vem do Criador cadastrado na fazenda,
 //   e a equipe pode trocar o dono de cada refugo pelo select do cartão.
-export default function RefugosBoard({ me, refugos: fromProps }) {
+export default function RefugosBoard({ me, refugos: fromProps, onOwnerChange }) {
   const isCriador = me.role === "CRIADOR";
   const [filter, setFilter] = useState("ALL");
   const [q, setQ] = useState("");
@@ -48,6 +48,7 @@ export default function RefugosBoard({ me, refugos: fromProps }) {
     try {
       const updated = await saveOwner(e.id, ownerId);
       setOwners((m) => ({ ...m, [e.id]: { ownerId: updated.ownerId ?? null, ownerName: updated.ownerName ?? null } }));
+      onOwnerChange?.({ ...e, ownerId: updated.ownerId ?? null, ownerName: updated.ownerName ?? null }); // Desembarque já mostra o novo dono
     } catch (err) {
       setOwnerErr((m) => ({ ...m, [e.id]: err.message }));
     } finally {

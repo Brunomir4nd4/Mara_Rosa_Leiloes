@@ -395,7 +395,7 @@ export default function PainelPage() {
                 goToPista={can("pista") ? () => setActive("pista") : undefined} />
             )}
             {active === "refugos" && can("refugos") && (
-              <RefugosBoard me={me} refugos={refugos} />
+              <RefugosBoard me={me} refugos={refugos} onOwnerChange={(e) => setEntries((l) => l.map((x) => (x.id === e.id ? { ...x, ownerId: e.ownerId, ownerName: e.ownerName } : x)))} />
             )}
             {active === "chat" && can("chat") && (
               <ChatBoard me={me} api={api} push={push} onUnread={setChatUnread} openRequest={chatOpen} />
