@@ -79,7 +79,7 @@ export default function LoginPage() {
         <div className="login-box">
           <div className="lbox-top"><PageTheme placement="inline" /></div>
           <nav className="ltabs" aria-label="Escolha a área">
-            <a href="/catalogo" className="ltab"><IconGrid /> Catálogo<span className="long">&nbsp;de lotes</span></a>
+            <a href="/catalogo" className="ltab"><IconGrid /><span>Catálogo<span className="long"> de lotes</span></span></a>
             <span className="ltab on" aria-current="page"><IconLock /> Painel</span>
           </nav>
 
