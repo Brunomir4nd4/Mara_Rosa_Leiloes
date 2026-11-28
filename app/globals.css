@@ -2943,3 +2943,15 @@ html[data-theme="light"]{--pop-bg:#ffffff}
  .dash .lb .lb-tabs button{flex-direction:column;gap:3px;padding:8px 2px;font-size:11.5px;letter-spacing:.02em;line-height:1.1}
  .dash .lb .lb-tabs button em{margin:0}
 }
+
+/* ===== Botões flutuantes (tema e voltar ao topo): longe da borda/barra de rolagem e com contorno nítido ===== */
+.theme-fab{right:28px;bottom:24px}
+.cat button.to-top{right:28px;bottom:84px}
+.theme-fab .theme-btn,.cat button.to-top{border:1.5px solid color-mix(in srgb,var(--y) 45%,var(--ln2));
+ box-shadow:0 0 0 4px color-mix(in srgb,var(--bg0) 85%,transparent),0 14px 30px -12px rgba(0,0,0,.75)}
+.theme-fab .theme-btn:hover:not(:disabled),.cat button.to-top:hover{border-color:var(--y);
+ box-shadow:0 0 0 4px color-mix(in srgb,var(--bg0) 85%,transparent),0 16px 32px -12px rgba(var(--y-rgb),.6)}
+@media (max-width:760px){
+ .theme-fab{right:18px;bottom:18px}
+ .cat button.to-top{right:18px;bottom:76px}
+}
