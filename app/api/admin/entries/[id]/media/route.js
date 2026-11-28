@@ -22,6 +22,10 @@ export async function POST(request, { params }) {
     const t = MEDIA_TYPES[type];
     if (!t) return fail("Formato não suportado. Fotos: JPG, PNG ou WEBP. Vídeos: MP4, WEBM ou MOV.", 415);
 
+    // nome original do arquivo (só para exibir); malformado vira vazio em vez de erro
+    let name = "";
+    try { name = decodeURIComponent(request.headers.get("x-file-name") || "").slice(0, 120); } catch { name = ""; }
+
     const isPhoto = t.kind === "photo";
     const saved = await saveUpload(request, {
       prefix: `desembarque-${t.kind}`,
@@ -31,7 +35,6 @@ export async function POST(request, { params }) {
     });
     if (saved.error) return fail(saved.error, saved.status);
 
-    const name = decodeURIComponent(request.headers.get("x-file-name") || "").slice(0, 120);
     const media = { id: saved.file.split(".")[0], file: saved.file, kind: t.kind, type, size: saved.size, name, uploadedAt: new Date().toISOString() };
     try {
       return json(await addEntryMedia(id, media), 201);

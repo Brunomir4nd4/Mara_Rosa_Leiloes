@@ -1,7 +1,9 @@
 import { addPickup, listPickups } from "../../../../lib/db";
 import { arrivalError } from "../../../../lib/datetime";
 import { normalizeTransport, transportErrors } from "../../../../lib/transport";
-import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
+import { fail, json, readJson, requireAdmin, requireUser, serverError } from "../../../../lib/api";
+import { lotForRole } from "../../../../lib/visibility";
+import { STAFF } from "../../../../lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const denied = await requireAdmin(request);
+  const { user, denied } = await requireUser(request, STAFF);
   if (denied) return denied;
 
   const b = await readJson(request);
@@ -39,7 +41,8 @@ export async function POST(request) {
   if (notes.length > 300) return fail("Observações com no máximo 300 caracteres.", 400);
 
   try {
-    return json(await addPickup({ lotId: b.lotId, quantity, pickedAt: picked.toISOString(), ...normalizeTransport(b), notes }), 201);
+    const r = await addPickup({ lotId: b.lotId, quantity, pickedAt: picked.toISOString(), ...normalizeTransport(b), notes });
+    return json({ ...r, lot: lotForRole(r.lot, user.role) }, 201);
   } catch (e) {
     if (e.status) return fail(e.message, e.status);
     return serverError(e);

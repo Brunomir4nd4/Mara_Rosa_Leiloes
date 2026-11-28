@@ -4,7 +4,7 @@ import { SESSION_COOKIE, SESSION_MAX_AGE } from "../../../../lib/session";
 import { fail, readJson, serverError } from "../../../../lib/api";
 import { DUMMY_HASH, verifyPassword } from "../../../../lib/password";
 import { findLoginUser } from "../../../../lib/users";
-import { allowLoginAttempt, clearLoginAttempts, clientIp, createSession } from "../../../../lib/auth";
+import { allowLoginAttempt, clearLoginAttempts, clientIp, createSession, recordLoginFailure } from "../../../../lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,10 +17,12 @@ export async function POST(request) {
 
   try {
     // limite por CPF e por IP, guardado no banco (vale entre servidores e reinícios)
-    if (!(await allowLoginAttempt(clientIp(request), cpf))) {
+    const ip = clientIp(request);
+    const attempt = await allowLoginAttempt(ip, cpf);
+    if (!attempt.ok) {
       return fail("Muitas tentativas. Aguarde 15 minutos e tente de novo.", 429);
     }
-    if (password.length > 200) return fail("CPF ou senha incorretos.", 401);
+    if (password.length > 200) { await recordLoginFailure(ip, cpf); return fail("CPF ou senha incorretos.", 401); }
 
     // Mesma mensagem e mesmo tempo de resposta para CPF sem conta e senha errada:
     // assim não dá para descobrir quais CPFs têm acesso.
@@ -28,10 +30,10 @@ export async function POST(request) {
     const user = await findLoginUser(cpf);
     const stored = user?.passwordHash;
     const ok = await verifyPassword(password, stored ?? DUMMY_HASH);
-    if (!stored || !ok) return fail("CPF ou senha incorretos.", 401);
+    if (!stored || !ok) { await recordLoginFailure(ip, cpf); return fail("CPF ou senha incorretos.", 401); }
 
     const token = await createSession(cpf);
-    await clearLoginAttempts(cpf);
+    await clearLoginAttempts(cpf, ip, attempt.rid);
     const res = NextResponse.json({ ok: true });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

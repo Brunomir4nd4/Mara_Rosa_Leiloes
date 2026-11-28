@@ -242,6 +242,8 @@ export default function PainelPage() {
         body: JSON.stringify(data),
       });
       setLots((l) => l.map((x) => (x.id === updated.id ? updated : x)));
+      // o comprador pode ter sido corrigido: atualiza o histórico de retiradas
+      if (updated.pickedUp) api("/api/admin/pickups").then(setPickups).catch(() => {});
       const p = updated.pista;
       const detail = p.status === "ARREMATADO" ? `${brl(p.value)} · ${p.buyer}`
         : p.status === "DEFENDIDO" ? `Proposta de ${brl(p.proposal)} recusada pelo dono`

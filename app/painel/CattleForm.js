@@ -133,21 +133,27 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
     try {
       const { dateEdited, ...rest } = form;
       const arrivedAt = (dateEdited ? new Date(form.arrivedAt) : new Date()).toISOString();
-      const payload = refugo ? { ...rest, arrivedAt } : { ...rest, arrivedAt, reason: "", notes: "", ownerId: "", driver: "", truckModel: "", plate: "" };
+      const payload = refugo ? { ...rest, arrivedAt } : { ...rest, arrivedAt, reason: "", notes: "" };
       let entry = await onAdd(payload);
-      // anexos: enviados um por vez depois que o registro existe
-      if (refugo && files.length) {
-        for (const [i, f] of files.entries()) {
-          setUploading({ done: i, total: files.length, progress: 0 });
-          entry = await uploadMedia(entry.id, f, (p) => setUploading({ done: i, total: files.length, progress: p }));
-          onEntryChange(entry);
-        }
-      }
+      // o registro já foi salvo: limpa o formulário (não dá para salvar duas vezes)
       // o caminhão costuma trazer vários lotes: mantém motorista, modelo e placa para o próximo registro
+      const pending = refugo ? files : [];
       setForm((f) => ({ ...EMPTY, arrivedAt: toLocalInput(), driver: f.driver, truckModel: f.truckModel, plate: f.plate }));
       setFiles([]);
       setTouched({});
       setSubmitted(false);
+      // anexos: enviados um por vez; se algum falhar, os outros seguem e o aviso diz qual reenviar pela galeria
+      const failed = [];
+      for (const [i, f] of pending.entries()) {
+        setUploading({ done: i, total: pending.length, progress: 0 });
+        try {
+          entry = await uploadMedia(entry.id, f, (p) => setUploading({ done: i, total: pending.length, progress: p }));
+          onEntryChange(entry);
+        } catch (e) {
+          failed.push(`${f.name} (${e.message})`);
+        }
+      }
+      if (failed.length) setSubmitError(`Registro salvo, mas ${failed.length === 1 ? "um anexo falhou" : `${failed.length} anexos falharam`}: ${failed.join("; ")}. Reenvie pela galeria do registro na lista abaixo.`);
     } catch (err) {
       setSubmitError(err.message);
     } finally {

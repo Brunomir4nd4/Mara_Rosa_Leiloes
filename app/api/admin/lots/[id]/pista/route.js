@@ -12,6 +12,11 @@ export async function PUT(request, { params }) {
 
   const { id } = await params;
   const b = await readJson(request);
+  if (!b || typeof b !== "object" || Array.isArray(b)) return fail("Dados inválidos.", 400);
+  if (["buyer", "term", "status"].some((k) => b[k] != null && typeof b[k] !== "string")) return fail("Dados inválidos: comprador, prazo e situação devem ser texto.", 400);
+  if (["value", "proposal", "ownerAsk"].some((k) => b[k] != null && b[k] !== "" && typeof b[k] !== "number" && !(typeof b[k] === "string" && /^\d+$/.test(b[k])))) {
+    return fail("Dados inválidos: os valores devem ser números.", 400);
+  }
   const toCents = (v) => (v == null || v === "" ? null : Number(v));
   const data = {
     status: b?.status,

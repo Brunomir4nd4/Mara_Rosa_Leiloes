@@ -55,6 +55,11 @@ export async function PATCH(request, { params }) {
     if (losesTI && (await countActiveTI(id)) < 1) return fail("É preciso manter pelo menos um usuário de TI ativo.", 409);
 
     const { user } = await updateUser(id, changes);
+    // duas pessoas tirando o TI uma da outra ao mesmo tempo: confere de novo e desfaz se ficou sem TI
+    if (losesTI && (await countActiveTI()) < 1) {
+      await updateUser(id, { role: target.role, active: target.active });
+      return fail("É preciso manter pelo menos um usuário de TI ativo.", 409);
+    }
     // desativado ou senha trocada por outra pessoa: derruba as sessões abertas dele
     if (changes.active === false || (changes.password && !self)) await destroyUserSessions(target.cpf);
     return json(user);

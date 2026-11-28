@@ -11,7 +11,8 @@ export async function PUT(request, { params }) {
   if (denied) return denied;
   const { id } = await params;
   const b = await readJson(request);
-  if (!b || !("criadorId" in b)) return fail("Informe o criador.", 400);
+  if (!b || typeof b !== "object" || Array.isArray(b) || !("criadorId" in b)) return fail("Informe o criador.", 400);
+  if (b.criadorId != null && typeof b.criadorId !== "string") return fail("Criador inválido.", 400);
   try {
     let criador = null;
     if (b.criadorId) {
