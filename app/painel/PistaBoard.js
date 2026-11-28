@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { label, lotTitle, summarize } from "../../lib/catalog";
 import { EMPTY_PISTA, PISTA_STATUS, STATUS_INFO, TERMS, brl, validatePista } from "../../lib/pista";
 import LotPicker from "./LotPicker";
+import Icon from "../_ui/Icon";
 
 const pad = (n) => String(n).padStart(2, "0");
 const fmt = (n) => n.toLocaleString("pt-BR");
@@ -176,7 +177,7 @@ function RingConsole({ lot, summary, entryRows, rows, index, onSave, onNavigate,
           <span className={`ring-dirty${dirty ? " on" : ""}`}>{dirty ? "Alterações não salvas" : lot.pista?.updatedAt ? "Salvo" : ""}</span>
           <button type="button" className="ghost" onClick={() => save(false)} disabled={saving || !dirty}>Salvar</button>
           <button type="submit" className="primary" disabled={saving}>
-            {saving ? "Salvando…" : index === rows.length - 1 ? "Salvar lote" : "Salvar e próximo lote →"}
+            {saving ? "Salvando…" : index === rows.length - 1 ? "Salvar lote" : <>Salvar e próximo lote <Icon name="arrowRight" /></>}
           </button>
         </div>
       </form>
@@ -201,7 +202,9 @@ export default function PistaBoard({ lots, entries, onSave, goToLotes, onDirtyCh
   useEffect(() => () => dirtyCb.current?.(false), []);
 
   const rows = useMemo(
-    () => [...lots].sort((a, b) => a.lot - b.lot).map((l) => ({ lot: l, s: summarize(rowsOf(l)), status: l.pista?.status ?? "AGUARDANDO" })),
+    // lotes de refugo não entram na pista
+    () => lots.filter((l) => l.kind !== "REFUGO").sort((a, b) => a.lot - b.lot)
+      .map((l) => ({ lot: l, s: summarize(rowsOf(l)), status: l.pista?.status ?? "AGUARDANDO" })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lots, entriesById]
   );
@@ -224,7 +227,7 @@ export default function PistaBoard({ lots, entries, onSave, goToLotes, onDirtyCh
       <div className="empty-card big">
         <strong>Nenhum lote vinculado ainda</strong>
         <p>A pista mostra os lotes já vinculados a uma fazenda. Vincule os lotes primeiro.</p>
-        <button type="button" className="btn-sec" onClick={goToLotes}>Ir para Lotes →</button>
+        <button type="button" className="btn-sec" onClick={goToLotes}>Ir para Lotes <Icon name="arrowRight" /></button>
       </div>
     );
   }
@@ -290,7 +293,7 @@ export default function PistaBoard({ lots, entries, onSave, goToLotes, onDirtyCh
 
       <section className="listing" aria-labelledby="listing-title">
         <header className="listing-head">
-          <h2 id="listing-title"><span aria-hidden="true">✶✶✶</span> Listagem de lotes <span aria-hidden="true">✶✶✶</span></h2>
+          <h2 id="listing-title"><span className="h2-spark" aria-hidden="true"><Icon name="spark" size={12} /><Icon name="spark" size={16} /><Icon name="spark" size={12} /></span> Listagem de lotes <span className="h2-spark" aria-hidden="true"><Icon name="spark" size={12} /><Icon name="spark" size={16} /><Icon name="spark" size={12} /></span></h2>
           <div className="listing-tools">
             <div className="chips-row" role="group" aria-label="Filtrar por situação">
               {FILTERS.map((f) => (

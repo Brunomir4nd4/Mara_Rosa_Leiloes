@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { isValidCpf } from "../../../../lib/cpf";
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "../../../../lib/session";
 import { fail, readJson, serverError } from "../../../../lib/api";
-import { DUMMY_HASH, loadAccounts, verifyPassword } from "../../../../lib/password";
+import { DUMMY_HASH, verifyPassword } from "../../../../lib/password";
+import { findLoginUser } from "../../../../lib/users";
 import { allowLoginAttempt, clearLoginAttempts, clientIp, createSession } from "../../../../lib/auth";
 
 export const runtime = "nodejs";
@@ -23,7 +24,9 @@ export async function POST(request) {
 
     // Mesma mensagem e mesmo tempo de resposta para CPF sem conta e senha errada:
     // assim não dá para descobrir quais CPFs têm acesso.
-    const stored = loadAccounts().get(cpf);
+    // usuário desativado conta como "sem conta"
+    const user = await findLoginUser(cpf);
+    const stored = user?.passwordHash;
     const ok = await verifyPassword(password, stored ?? DUMMY_HASH);
     if (!stored || !ok) return fail("CPF ou senha incorretos.", 401);
 

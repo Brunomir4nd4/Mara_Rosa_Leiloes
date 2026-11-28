@@ -2,6 +2,7 @@ import { addEntry, listEntries } from "../../../../lib/db";
 import { BREEDS, ENTRY_KINDS, LIMITS, QUALITIES, REFUGO_REASONS, SEX_TYPES } from "../../../../lib/catalog";
 import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
 import { arrivalError } from "../../../../lib/datetime";
+import { normalizeTransport, transportErrors } from "../../../../lib/transport";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export async function POST(request) {
 
   const b = await readJson(request);
   if (!b || typeof b !== "object" || Array.isArray(b)) return fail("Dados inválidos.", 400);
-  if (["farm", "notes", "arrivedAt"].some((k) => b[k] != null && typeof b[k] !== "string")) {
+  if (["farm", "notes", "arrivedAt", "driver", "truckModel", "plate"].some((k) => b[k] != null && typeof b[k] !== "string")) {
     return fail("Dados inválidos: os campos devem ser texto.", 400);
   }
   const data = {
@@ -49,12 +50,18 @@ export async function POST(request) {
     data.notes = (b.notes ?? "").trim();
     if (data.reason === "OUTRO" && data.notes.length < 3) return fail("Descreva o problema em Observações.", 400);
     if (data.notes.length > 500) return fail("Observações com no máximo 500 caracteres.", 400);
+    // o Criador (dono) vem do cadastro da fazenda — definido no addEntry
   }
   // data e hora do desembarque: se não vier, usa o momento do cadastro
   const arrived = b?.arrivedAt ? new Date(b.arrivedAt) : new Date();
   const dateError = arrivalError(arrived);
   if (dateError) return fail(dateError, 400);
   data.arrivedAt = arrived.toISOString();
+
+  // caminhão que trouxe o gado (fica só no desembarque, para consulta futura)
+  const tErr = Object.values(transportErrors(b))[0];
+  if (tErr) return fail(tErr, 400);
+  Object.assign(data, normalizeTransport(b));
 
   if (!data.farm) return fail("Selecione a fazenda.", 400);
   if (!data.quantity) return fail(`Quantidade deve ser um número inteiro entre 1 e ${LIMITS.quantity}.`, 400);

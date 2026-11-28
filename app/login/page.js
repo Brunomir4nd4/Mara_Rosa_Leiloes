@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { maskCpf, isValidCpf } from "../../lib/cpf";
+import PageTheme from "../_ui/PageTheme";
+import LoginLogo from "./LoginLogo";
 
 // Só aceita redirecionar para dentro do painel (evita open redirect via ?next=)
 function nextPath() {
@@ -66,25 +68,18 @@ export default function LoginPage() {
 
   return (
     <main className="page">
+      <PageTheme />
       <div className="hero">
         <div className="stripe" aria-hidden="true" />
         <div className="gap" aria-hidden="true" />
         <section className="left">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="logo"
-            src="/logo.jpg"
-            alt="Mara Rosa Leilões – A vitrine do boi"
-            width={886}
-            height={861}
-            fetchPriority="high"
-          />
+          <LoginLogo />
         </section>
       </div>
       <section className="right">
         <div className="login-box">
           <nav className="ltabs" aria-label="Escolha a área">
-            <a href="/" className="ltab"><IconGrid /> Catálogo<span className="long">&nbsp;de lotes</span></a>
+            <a href="/catalogo" className="ltab"><IconGrid /> Catálogo<span className="long">&nbsp;de lotes</span></a>
             <span className="ltab on" aria-current="page"><IconLock /> Painel</span>
           </nav>
 

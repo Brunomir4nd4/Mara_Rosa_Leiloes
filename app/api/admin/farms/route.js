@@ -3,6 +3,7 @@ import { isValidCpf, maskCpf } from "../../../../lib/cpf";
 import { isValidCnpj, maskCnpj } from "../../../../lib/cnpj";
 import { isValidPhone, maskPhone } from "../../../../lib/phone";
 import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
+import { getUser } from "../../../../lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,16 @@ export async function POST(request) {
     farmName: raw.farmName,
     tradeName: raw.tradeName,
     cnpj: raw.cnpj ? maskCnpj(raw.cnpj) : "",
+    criadorId: null,
+    criadorName: null,
   };
+  // Criador (usuário do vendedor) dono desta fazenda — os refugos dela já saem vinculados a ele
+  if (b.criadorId) {
+    const u = typeof b.criadorId === "string" ? await getUser(b.criadorId).catch(() => null) : null;
+    if (!u || u.role !== "CRIADOR" || !u.active) return fail("Criador não encontrado ou inativo.", 400);
+    data.criadorId = u._id.toString();
+    data.criadorName = u.name;
+  }
 
   try {
     return json(await addFarm(data), 201);

@@ -7,9 +7,11 @@ import NumberStepper from "../_ui/NumberStepper";
 import DateTimePicker from "../_ui/DateTimePicker";
 import MediaGallery, { ACCEPT_MEDIA, checkFile, uploadMedia } from "./MediaGallery";
 import { arrivalError, formatDateTime, toLocalInput } from "../../lib/datetime";
+import { maskPlate, transportErrors } from "../../lib/transport";
+import Icon from "../_ui/Icon";
 
 // arrivedAt começa com a hora atual e segue o relógio até o usuário alterar (dateEdited)
-const EMPTY = { kind: "NORMAL", farm: "", arrivedAt: "", dateEdited: false, quantity: "", sexType: "", ageMonths: "", breed: "", quality: "", reason: "", notes: "" };
+const EMPTY = { kind: "NORMAL", farm: "", arrivedAt: "", dateEdited: false, quantity: "", sexType: "", ageMonths: "", breed: "", quality: "", reason: "", notes: "", ownerId: "", driver: "", truckModel: "", plate: "" };
 
 const FIELDS = [
   { key: "farm", id: "des-farm", label: "Fazenda" },
@@ -21,6 +23,9 @@ const FIELDS = [
   { key: "quality", id: "des-quality", label: "Qualidade" },
   { key: "reason", id: "des-reason", label: "Motivo do refugo" },
   { key: "notes", id: "des-notes", label: "Observações" },
+  { key: "driver", id: "des-driver", label: "Motorista" },
+  { key: "truckModel", id: "des-truck", label: "Modelo do caminhão" },
+  { key: "plate", id: "des-plate", label: "Placa" },
 ];
 
 function intError(value, max, what) {
@@ -46,6 +51,7 @@ function validate(form) {
     notes: !refugo ? ""
       : form.reason === "OUTRO" && form.notes.trim().length < 3 ? "Descreva o problema."
       : form.notes.length > 500 ? "Máximo de 500 caracteres." : "",
+    ...transportErrors(form),
   };
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v));
 }
@@ -91,6 +97,9 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
     setSubmitError("");
   };
 
+  // Refugo: o Criador vem do cadastro da fazenda (amarração Fazenda → Desembarque)
+  const farmCriador = farms.find((x) => x.farmName === form.farm)?.criadorName ?? null;
+
   // previews dos anexos escolhidos (liberados ao trocar a lista)
   const [previews, setPreviews] = useState([]);
   useEffect(() => {
@@ -124,7 +133,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
     try {
       const { dateEdited, ...rest } = form;
       const arrivedAt = (dateEdited ? new Date(form.arrivedAt) : new Date()).toISOString();
-      const payload = refugo ? { ...rest, arrivedAt } : { ...rest, arrivedAt, reason: "", notes: "" };
+      const payload = refugo ? { ...rest, arrivedAt } : { ...rest, arrivedAt, reason: "", notes: "", ownerId: "", driver: "", truckModel: "", plate: "" };
       let entry = await onAdd(payload);
       // anexos: enviados um por vez depois que o registro existe
       if (refugo && files.length) {
@@ -134,7 +143,8 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
           onEntryChange(entry);
         }
       }
-      setForm({ ...EMPTY, arrivedAt: toLocalInput() });
+      // o caminhão costuma trazer vários lotes: mantém motorista, modelo e placa para o próximo registro
+      setForm((f) => ({ ...EMPTY, arrivedAt: toLocalInput(), driver: f.driver, truckModel: f.truckModel, plate: f.plate }));
       setFiles([]);
       setTouched({});
       setSubmitted(false);
@@ -147,6 +157,9 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
   }
 
   const farmNames = [...new Set(farms.map((f) => f.farmName).filter(Boolean))];
+  // último caminhão registrado (atalho para preencher de novo)
+  const lastWithTruck = [...records].reverse().find((r) => r.plate);
+  const lastTruck = lastWithTruck ? { driver: lastWithTruck.driver, truckModel: lastWithTruck.truckModel, plate: lastWithTruck.plate } : null;
   const lotByEntry = new Map(lots.flatMap((l) => l.entryIds.map((id) => [id, l.lot])));
   const errorCount = Object.keys(errors).length;
   const preview = form.sexType && !errors.ageMonths ? categoryOf(form.sexType, form.ageMonths) : null;
@@ -264,6 +277,47 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
             <span className="cp-hint">Calculada automaticamente</span>
           </div>
 
+          <div className="truck-box wide">
+            <div className="tb-head">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h12v9H2zm12 3h4l3 3v3h-7zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" /></svg>
+              <strong>Caminhão</strong>
+              <span className="tb-sub">Fica registrado só no desembarque, para consulta futura</span>
+              <div className="tb-actions">
+                {lastTruck && !form.driver && !form.plate && (
+                  <button type="button" className="linkbtn" onClick={() => setForm((f) => ({ ...f, ...lastTruck }))}>
+                    Usar o último ({lastTruck.plate})
+                  </button>
+                )}
+                {(form.driver || form.truckModel || form.plate) && (
+                  <button type="button" className="linkbtn" onClick={() => setForm((f) => ({ ...f, driver: "", truckModel: "", plate: "" }))}>Limpar</button>
+                )}
+              </div>
+            </div>
+            <div className="grid tb-grid">
+              <div className={fieldClass("driver")}>
+                <label htmlFor="des-driver">Motorista</label>
+                <input id="des-driver" autoComplete="off" placeholder="Nome do motorista" maxLength={80}
+                  aria-invalid={show("driver") ? "true" : "false"} aria-describedby="des-driver-err"
+                  value={form.driver} onChange={(e) => set("driver", e.target.value)} onBlur={() => touch("driver")} />
+                <FieldError id="des-driver-err" message={show("driver")} />
+              </div>
+              <div className={fieldClass("truckModel")}>
+                <label htmlFor="des-truck">Modelo do caminhão</label>
+                <input id="des-truck" autoComplete="off" placeholder="Ex.: Scania R 450" maxLength={60}
+                  aria-invalid={show("truckModel") ? "true" : "false"} aria-describedby="des-truck-err"
+                  value={form.truckModel} onChange={(e) => set("truckModel", e.target.value)} onBlur={() => touch("truckModel")} />
+                <FieldError id="des-truck-err" message={show("truckModel")} />
+              </div>
+              <div className={fieldClass("plate")}>
+                <label htmlFor="des-plate">Placa</label>
+                <input id="des-plate" className="plate-input" autoComplete="off" placeholder="ABC1D23" maxLength={8}
+                  aria-invalid={show("plate") ? "true" : "false"} aria-describedby="des-plate-err"
+                  value={form.plate} onChange={(e) => set("plate", maskPlate(e.target.value))} onBlur={() => touch("plate")} />
+                <FieldError id="des-plate-err" message={show("plate")} />
+              </div>
+            </div>
+          </div>
+
           {refugo && (
             <div className="refugo-box wide">
               <div className="rb-head">
@@ -271,6 +325,15 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
                 <strong>Dados do refugo</strong>
               </div>
               <div className="grid">
+                <div className="fld wide">
+                  <span className="lbl">Criador (dono do gado)</span>
+                  <div className={`owner-info${farmCriador ? " on" : ""}`}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z" /></svg>
+                    {!form.farm ? <span>Escolha a fazenda: o criador vem do cadastro dela.</span>
+                      : farmCriador ? <span><b>{farmCriador}</b> — vem do cadastro da fazenda. Só ele e a equipe veem este refugo.</span>
+                      : <span>Esta fazenda não tem criador. Defina na aba <b>Fazenda</b> para ele ver os refugos.</span>}
+                  </div>
+                </div>
                 <div className={fieldClass("reason")}>
                   <label htmlFor="des-reason">Motivo do refugo</label>
                   <Select id="des-reason" value={form.reason} onChange={(v) => set("reason", v)} onBlur={() => touch("reason")}
@@ -298,7 +361,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
                           ? <img src={previews[i]} alt="" />
                           : <video src={previews[i]} muted />}
                         <span className="pf-name">{f.name}</span>
-                        <button type="button" className="pf-x" onClick={() => setFiles((l) => l.filter((_, j) => j !== i))} aria-label={`Remover ${f.name}`}>✕</button>
+                        <button type="button" className="pf-x" onClick={() => setFiles((l) => l.filter((_, j) => j !== i))} aria-label={`Remover ${f.name}`}><Icon name="x" size={14} /></button>
                       </div>
                     ))}
                     <button type="button" className="pf-add" onClick={() => fileInput.current?.click()}>
@@ -355,7 +418,7 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
             <table>
               <thead>
                 <tr>
-                  <th>Tipo</th><th>Desembarque</th><th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
+                  <th>Tipo</th><th>Desembarque</th><th>Caminhão</th><th>Fazenda</th><th>Qtd.</th><th>Sexo / Tipo</th><th>Idade</th>
                   <th>Raça</th><th>Categoria</th><th>Qualidade</th><th>Anexos</th><th>Lote</th>
                 </tr>
               </thead>
@@ -371,6 +434,14 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
                           : <span className="kind-pill">Normal</span>}
                       </td>
                       <td className="nowrap">{formatDateTime(r.arrivedAt ?? r.createdAt)}</td>
+                      <td className="nowrap">
+                        {r.plate ? (
+                          <span className="truck-cell" title={`${r.driver} · ${r.truckModel}`}>
+                            <span className="plate-tag">{r.plate}</span>
+                            <small>{r.driver}</small>
+                          </span>
+                        ) : "—"}
+                      </td>
                       <td>{r.farm}</td>
                       <td>{r.quantity}</td>
                       <td>{label(r.sexType)}</td>
@@ -415,10 +486,11 @@ export default function CattleForm({ records, farms = [], lots = [], onAdd, onEn
               <div>
                 <span className="gd-kick">{isRefugo(openEntry) ? `Refugo · ${label(openEntry.reason)}` : "Gado normal"}</span>
                 <h3 id="gd-title">{openEntry.quantity} {label(categoryOf(openEntry.sexType, openEntry.ageMonths))} · {openEntry.farm}</h3>
-                <p className="gd-date">Desembarque em {formatDateTime(openEntry.arrivedAt ?? openEntry.createdAt)}</p>
+                <p className="gd-date">Desembarque em {formatDateTime(openEntry.arrivedAt ?? openEntry.createdAt)}
+                  {openEntry.plate && ` · Caminhão ${openEntry.plate} (${openEntry.truckModel}), motorista ${openEntry.driver}`}</p>
                 {openEntry.notes && <p className="gd-notes">“{openEntry.notes}”</p>}
               </div>
-              <button type="button" className="gd-x" onClick={() => setGallery(null)} aria-label="Fechar">✕</button>
+              <button type="button" className="gd-x" onClick={() => setGallery(null)} aria-label="Fechar"><Icon name="x" /></button>
             </header>
             <MediaGallery entry={openEntry} onChange={onEntryChange} editable />
           </div>

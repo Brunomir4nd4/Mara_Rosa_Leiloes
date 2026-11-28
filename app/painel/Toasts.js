@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import Icon from "../_ui/Icon";
 
 // Notificações do painel (sucesso / erro / info), somem sozinhas em alguns segundos
 export function useToasts() {
@@ -17,7 +18,7 @@ export function useToasts() {
   return { toasts, push, dismiss };
 }
 
-const ICON = { success: "✓", error: "!", info: "i" };
+const ICON = { success: <Icon name="check" size={16} />, error: <Icon name="alert" size={16} />, info: <Icon name="info" size={16} /> };
 
 export function Toasts({ toasts, dismiss }) {
   return (
@@ -29,7 +30,7 @@ export function Toasts({ toasts, dismiss }) {
             <strong>{t.title}</strong>
             {t.message && <p>{t.message}</p>}
           </div>
-          <button type="button" className="toast-x" onClick={() => dismiss(t.id)} aria-label="Fechar aviso">✕</button>
+          <button type="button" className="toast-x" onClick={() => dismiss(t.id)} aria-label="Fechar aviso"><Icon name="x" size={16} /></button>
           <span className="toast-bar" aria-hidden="true" />
         </div>
       ))}

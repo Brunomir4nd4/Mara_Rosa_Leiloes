@@ -1,6 +1,7 @@
 import { getLot, setLotVideo } from "../../../../../../lib/db";
 import { removeMediaFile, saveUpload } from "../../../../../../lib/files";
 import { fail, json, requireAdmin, serverError } from "../../../../../../lib/api";
+import { OFFICE } from "../../../../../../lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const dim = (v) => {
 
 // Upload: corpo da requisição = arquivo bruto (Content-Type: video/*), gravado em streaming no GridFS
 export async function POST(request, { params }) {
-  const denied = await requireAdmin(request);
+  const denied = await requireAdmin(request, OFFICE);
   if (denied) return denied;
 
   const { id } = await params;
@@ -52,7 +53,7 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const denied = await requireAdmin(request);
+  const denied = await requireAdmin(request, OFFICE);
   if (denied) return denied;
 
   const { id } = await params;

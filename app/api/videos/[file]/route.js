@@ -1,5 +1,6 @@
 import { serveFile } from "../../../../lib/files";
 import { serverError } from "../../../../lib/api";
+import { isRefugoVideo } from "../../../../lib/db";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,7 @@ export async function GET(request, { params }) {
   const { file } = await params;
   if (!/^lote-\d+-[0-9a-f-]{36}\.(mp4|webm|mov)$/.test(file)) return new Response("Not found", { status: 404 });
   try {
+    if (await isRefugoVideo(file)) return new Response("Not found", { status: 404 });
     return await serveFile(request, file, "public, max-age=31536000, immutable");
   } catch (e) {
     return serverError(e);

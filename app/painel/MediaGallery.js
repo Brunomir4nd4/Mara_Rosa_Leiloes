@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Icon from "../_ui/Icon";
 
 export const ACCEPT_MEDIA = "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime";
 const MAX_PHOTO = 15 * 1024 * 1024;
@@ -53,7 +54,7 @@ function Lightbox({ items, index, onClose, onIndex }) {
       }}>
       {m && (
         <div className="lb-box">
-          <button type="button" className="lb-x" onClick={onClose} aria-label="Fechar">✕</button>
+          <button type="button" className="lb-x" onClick={onClose} aria-label="Fechar"><Icon name="x" /></button>
           {m.kind === "photo"
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={mediaUrl(m)} alt={m.name || "Foto do animal"} />
@@ -119,7 +120,7 @@ export default function MediaGallery({ entry, onChange, editable = false, compac
               <span className="g-kind">{m.kind === "photo" ? "Foto" : "Vídeo"} · {fmtSize(m.size)}</span>
             </button>
             {editable && (
-              <button type="button" className="g-del" onClick={() => remove(m)} aria-label="Remover anexo">✕</button>
+              <button type="button" className="g-del" onClick={() => remove(m)} aria-label="Remover anexo"><Icon name="x" size={14} /></button>
             )}
           </li>
         ))}

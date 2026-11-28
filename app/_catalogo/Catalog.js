@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Select from "../_ui/Select";
 import { BREEDS, CATEGORIES, QUALITIES, ageLabel, categoryLabel, label, lotTitle, resolutionLabel, sexLabel } from "../../lib/catalog";
+import Icon from "../_ui/Icon";
+import PageTheme from "../_ui/PageTheme";
+import BrandLogo from "../_ui/BrandLogo";
+import { CountUp } from "../painel/Kpis";
 
 const SEX_TABS = [
   { id: "ALL", label: "Todos" },
@@ -60,12 +64,10 @@ function LotCard({ lot, index, onOpen }) {
             </>
           ) : (
             <div className="novideo" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpg" alt="" width={886} height={861} />
+              <BrandLogo className="nv-logo" />
             </div>
           )}
           <span className="lotno" aria-hidden="true"><small>Lote</small>{lotNo(lot.lot)}</span>
-          {lot.refugo && <span className="rf-badge">Refugo</span>}
           {res && <span className="res">{res}</span>}
         </div>
         <div className="info">
@@ -102,22 +104,20 @@ function Player({ lot, onClose }) {
       aria-labelledby="player-title">
       {lot && (
         <div className="player-box">
-          <button type="button" className="close" onClick={onClose} aria-label="Fechar">✕</button>
+          <button type="button" className="close" onClick={onClose} aria-label="Fechar"><Icon name="x" /></button>
           <div className="player-media">
             {lot.video ? (
               // Arquivo original, sem recompressão: o navegador exibe na resolução enviada
               <video key={lot.id} src={lot.video.url} controls autoPlay playsInline preload="auto" />
             ) : (
               <div className="novideo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.jpg" alt="" width={886} height={861} />
+                <BrandLogo className="nv-logo" />
               </div>
             )}
           </div>
           <div className="player-info">
             <p className="kicker">Lote {lotNo(lot.lot)}</p>
             <h2 id="player-title">{lotTitle(lot)}</h2>
-            {lot.refugo && <p className="rf-note">Lote de refugo · {lot.reasons.map(label).join(", ")}</p>}
             <div className="tags">
               <QualityBadges qualities={lot.qualities} />
               {res && <span className="res inline">{res}</span>}
@@ -145,7 +145,38 @@ function Player({ lot, onClose }) {
   );
 }
 
+// Efeitos: cartões inclinam e recebem luz seguindo o mouse; botão "voltar ao topo"
+function useCatalogEffects() {
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const move = (e) => {
+      const el = e.target.closest?.(".cat .card-btn, .cat .stats>div");
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      el.style.setProperty("--mx", `${x}px`);
+      el.style.setProperty("--my", `${y}px`);
+      if (!reduce && el.classList.contains("card-btn")) {
+        el.style.setProperty("--ry", `${((x / r.width) - 0.5) * 6}deg`);
+        el.style.setProperty("--rx", `${(0.5 - (y / r.height)) * 6}deg`);
+      }
+    };
+    const leave = (e) => {
+      const el = e.target.closest?.(".cat .card-btn");
+      if (el && !el.contains(e.relatedTarget)) { el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg"); }
+    };
+    const scroll = () => setShowTop(window.scrollY > 700);
+    document.addEventListener("pointermove", move, { passive: true });
+    document.addEventListener("pointerout", leave);
+    window.addEventListener("scroll", scroll, { passive: true });
+    return () => { document.removeEventListener("pointermove", move); document.removeEventListener("pointerout", leave); window.removeEventListener("scroll", scroll); };
+  }, []);
+  return showTop;
+}
+
 export default function Catalog({ lots }) {
+  const showTop = useCatalogEffects();
   const [sex, setSex] = useState("ALL");
   const [filters, setFilters] = useState(NO_FILTERS);
   const [sort, setSort] = useState("lot");
@@ -169,6 +200,8 @@ export default function Catalog({ lots }) {
   const toggle = (key, value) =>
     setFilters((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value] }));
 
+  const [showFilters, setShowFilters] = useState(false); // celular: grupos de filtros recolhidos
+  const activeCount = Object.values(filters).reduce((t, v) => t + v.length, 0);
   const hasFilters = sex !== "ALL" || Object.values(filters).some((v) => v.length) || search;
   const clear = () => { setSex("ALL"); setFilters(NO_FILTERS); setSearch(""); };
 
@@ -200,12 +233,20 @@ export default function Catalog({ lots }) {
 
   return (
     <div className="cat">
+      <PageTheme />
+      <button type="button" className={`to-top${showTop ? " on" : ""}`} aria-label="Voltar ao topo" tabIndex={showTop ? 0 : -1}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><Icon name="arrowLeft" /></button>
       <header className="cat-top">
-        <a href="/" className="brand" aria-label="Mara Rosa Leilões – início">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.jpg" alt="" width={886} height={861} />
+        <a href="/catalogo" className="brand" aria-label="Mara Rosa Leilões – catálogo">
+          <BrandLogo className="cb-logo" />
         </a>
         <div className="cat-hero">
+          <a href="/login" className="to-login">
+            <span className="tl-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z" /></svg>
+            </span>
+            <span className="tl-txt"><small>Voltar para</small>Login</span>
+          </a>
           <p className="kicker">A vitrine do boi</p>
           <h1>Catálogo de lotes</h1>
           <p className="lead">Confira os lotes deste leilão: categoria, raça, idade e qualidade de cada um.</p>
@@ -213,10 +254,10 @@ export default function Catalog({ lots }) {
       </header>
 
       <dl className="stats" aria-live="polite">
-        <div><dt>Lotes</dt><dd>{fmt(visible.length)}</dd></div>
-        <div><dt>Cabeças</dt><dd>{fmt(heads)}</dd></div>
-        <div><dt>Machos</dt><dd>{fmt(males)}</dd></div>
-        <div><dt>Fêmeas</dt><dd>{fmt(heads - males)}</dd></div>
+        <div style={{ "--i": 0 }}><dt>Lotes</dt><dd><CountUp value={visible.length} /></dd></div>
+        <div style={{ "--i": 1 }}><dt>Cabeças</dt><dd><CountUp value={heads} /></dd></div>
+        <div style={{ "--i": 2 }}><dt>Machos</dt><dd><CountUp value={males} /></dd></div>
+        <div style={{ "--i": 3 }}><dt>Fêmeas</dt><dd><CountUp value={heads - males} /></dd></div>
       </dl>
 
       <section className="filters" aria-label="Filtros do catálogo">
@@ -241,7 +282,13 @@ export default function Catalog({ lots }) {
           </div>
         </div>
 
-        <div className="fgroups">
+        <button type="button" className={`f-toggle${showFilters ? " on" : ""}`} aria-expanded={showFilters} aria-controls="cat-fgroups"
+          onClick={() => setShowFilters((v) => !v)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4" /></svg>
+          Filtros{activeCount > 0 && <em>{activeCount}</em>}
+          <svg className="f-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        <div className={`fgroups${showFilters ? " open" : ""}`} id="cat-fgroups">
           {chipGroups.map((g) => (
             <div className="fgroup" key={g.key} role="group" aria-label={g.title}>
               <span className="ftitle">{g.title}</span>
@@ -250,7 +297,7 @@ export default function Catalog({ lots }) {
                   const on = filters[g.key].includes(o);
                   const n = countFor(g.key, o);
                   return (
-                    <button key={o} type="button" className={`chip${on ? " on" : ""}`} aria-pressed={on}
+                    <button key={o} type="button" className={`chip${on ? " on" : ""}${!on && n === 0 ? " empty" : ""}`} aria-pressed={on}
                       onClick={() => toggle(g.key, o)} disabled={!on && n === 0}>
                       {label(o)} <em>{n}</em>
                     </button>
@@ -259,7 +306,11 @@ export default function Catalog({ lots }) {
               </div>
             </div>
           ))}
-          {hasFilters && <button type="button" className="clear" onClick={clear}>Limpar filtros</button>}
+          {hasFilters && (
+            <button type="button" className="clear clear-pill" onClick={clear}>
+              <Icon name="x" size={14} /> Limpar filtros
+            </button>
+          )}
         </div>
       </section>
 

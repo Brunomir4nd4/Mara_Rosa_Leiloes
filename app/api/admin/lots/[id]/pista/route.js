@@ -1,12 +1,13 @@
 import { setLotPista } from "../../../../../../lib/db";
 import { normalizePista, validatePista } from "../../../../../../lib/pista";
 import { fail, json, readJson, requireAdmin, serverError } from "../../../../../../lib/api";
+import { OFFICE } from "../../../../../../lib/roles";
 
 export const dynamic = "force-dynamic";
 
 // Resultado do lote na pista: situação, valor, comprador, prazo, proposta e valor pretendido
 export async function PUT(request, { params }) {
-  const denied = await requireAdmin(request);
+  const denied = await requireAdmin(request, OFFICE);
   if (denied) return denied;
 
   const { id } = await params;

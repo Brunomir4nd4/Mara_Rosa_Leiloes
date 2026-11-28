@@ -4,8 +4,9 @@ import { useState } from "react";
 import { maskCpf, isValidCpf } from "../../lib/cpf";
 import { maskCnpj, isValidCnpj } from "../../lib/cnpj";
 import { maskPhone, isValidPhone } from "../../lib/phone";
+import Select from "../_ui/Select";
 
-const EMPTY = { cpf: "", farmName: "", tradeName: "", ownerName: "", phone: "", cnpj: "" };
+const EMPTY = { cpf: "", farmName: "", tradeName: "", ownerName: "", phone: "", cnpj: "", criadorId: "" };
 
 const FIELDS = [
   { key: "cpf", id: "farm-cpf", label: "CPF do titular" },
@@ -32,7 +33,7 @@ function FieldError({ id, message }) {
   return message ? <p className="ferr" id={id} role="alert">{message}</p> : null;
 }
 
-export default function FarmForm({ records, onAdd }) {
+export default function FarmForm({ records, criadores = [], onAdd, onCriadorChange }) {
   const [form, setForm] = useState(EMPTY);
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -131,6 +132,12 @@ export default function FarmForm({ records, onAdd }) {
               value={form.cnpj} onChange={(e) => set("cnpj", maskCnpj(e.target.value))} onBlur={() => touch("cnpj")} />
             <FieldError id="farm-cnpj-err" message={show("cnpj")} />
           </div>
+          <div className="fld wide">
+            <label htmlFor="farm-criador">Criador (usuário do vendedor) <span className="opt">(opcional — os refugos desta fazenda já saem vinculados a ele)</span></label>
+            <Select id="farm-criador" value={form.criadorId} onChange={(v) => set("criadorId", v)} placeholder="Selecione o criador…"
+              options={[{ value: "", label: "Sem criador", hint: "Pode definir depois na lista abaixo" }, ...criadores.map((c) => ({ value: c.id, label: c.name }))]} />
+            {criadores.length === 0 && <p className="hint">Nenhum usuário Criador cadastrado. Crie em Admin → Usuários com a função Criador.</p>}
+          </div>
         </div>
         {submitError && (
           <div className="vbox" role="alert">
@@ -151,7 +158,7 @@ export default function FarmForm({ records, onAdd }) {
         <div className="tbl">
           <table>
             <thead>
-              <tr><th>Fazenda</th><th>Nome fantasia</th><th>Titular</th><th>Telefone</th><th>CPF</th><th>CNPJ</th></tr>
+              <tr><th>Fazenda</th><th>Nome fantasia</th><th>Titular</th><th>Telefone</th><th>CPF</th><th>CNPJ</th><th>Criador</th></tr>
             </thead>
             <tbody>
               {records.map((r) => (
@@ -162,6 +169,11 @@ export default function FarmForm({ records, onAdd }) {
                   <td>{r.phone || "—"}</td>
                   <td>{r.cpf}</td>
                   <td>{r.cnpj || "—"}</td>
+                  <td className="td-criador">
+                    <Select id={`farm-cr-${r.id}`} value={r.criadorId ?? ""} onChange={(v) => onCriadorChange?.(r, v || null)} ariaLabel={`Criador da ${r.farmName}`}
+                      options={[{ value: "", label: "Sem criador" }, ...criadores.map((c) => ({ value: c.id, label: c.name })),
+                        ...(r.criadorId && !criadores.some((c) => c.id === r.criadorId) ? [{ value: r.criadorId, label: `${r.criadorName ?? "Criador"} (inativo)`, disabled: true }] : [])]} />
+                  </td>
                 </tr>
               ))}
             </tbody>

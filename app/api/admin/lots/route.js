@@ -1,13 +1,17 @@
 import { linkLot, listLots } from "../../../../lib/db";
-import { fail, json, readJson, requireAdmin, serverError } from "../../../../lib/api";
+import { fail, json, readJson, requireAdmin, requireUser, serverError } from "../../../../lib/api";
+import { OFFICE, STAFF } from "../../../../lib/roles";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
-  const denied = await requireAdmin(request);
+  const { user, denied } = await requireUser(request, STAFF);
   if (denied) return denied;
   try {
-    return json(await listLots());
+    const lots = await listLots();
+    if (OFFICE.includes(user.role)) return json(lots);
+    // Curral: só o que a Retirada usa (sem valores, propostas e pedido do dono)
+    return json(lots.map((l) => (l.pista ? { ...l, pista: { status: l.pista.status, buyer: l.pista.buyer, term: l.pista.term } } : l)));
   } catch (e) {
     return serverError(e);
   }

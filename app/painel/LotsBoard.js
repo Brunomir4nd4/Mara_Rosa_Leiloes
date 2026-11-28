@@ -6,6 +6,7 @@ import Select from "../_ui/Select";
 import NumberStepper from "../_ui/NumberStepper";
 import MediaGallery from "./MediaGallery";
 import { formatDateTime } from "../../lib/datetime";
+import Icon from "../_ui/Icon";
 
 const pad = (n) => String(n).padStart(2, "0");
 const fmt = (n) => n.toLocaleString("pt-BR");
@@ -74,7 +75,7 @@ function LinkForm({ lot, farms, available, onLink, goToDesembarque }) {
         </span>
         <strong>Nenhum gado sem lote</strong>
         <p>Todo o gado do desembarque já está em lotes. Registre um novo desembarque para ocupar o lote {pad(lot)}.</p>
-        <button type="button" className="btn-sec" onClick={goToDesembarque}>Registrar desembarque →</button>
+        <button type="button" className="btn-sec" onClick={goToDesembarque}>Registrar desembarque <Icon name="arrowRight" /></button>
       </div>
     );
   }
@@ -294,7 +295,7 @@ function CapacityDialog({ open, onClose, total, max, trailingFree, onChange }) {
             <h3 id="cap-title">Quantidade de lotes</h3>
             <p>Hoje o leilão tem <b>{total}</b> lotes (máximo {max}).</p>
           </div>
-          <button type="button" className="cap-x" onClick={onClose} aria-label="Fechar">✕</button>
+          <button type="button" className="cap-x" onClick={onClose} aria-label="Fechar"><Icon name="x" /></button>
         </header>
 
         <div className="cap-tabs" role="tablist" style={{ "--idx": mode === "add" ? 0 : 1 }}>
@@ -582,7 +583,7 @@ export default function LotsBoard({ lots, entries, farms, total, max, onLink, on
               <header className={`dh ${selRec ? "linked" : "free"}`}>
                 <span className="dh-no"><small>Lote</small>{pad(selected)}</span>
                 <span className="dh-status">{selRec ? "Vinculado" : "Disponível"}</span>
-                <button type="button" className="dh-close" onClick={() => setSelected(null)} aria-label="Fechar detalhe">✕</button>
+                <button type="button" className="dh-close" onClick={() => setSelected(null)} aria-label="Fechar detalhe"><Icon name="x" /></button>
               </header>
               {selRec ? (
                 <LinkedDetail record={selRec} entries={entriesOf(selRec)} onAskUnlink={() => setConfirming(true)} onEntryChange={onEntryChange} />
